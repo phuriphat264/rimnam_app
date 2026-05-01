@@ -33,7 +33,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = ref.watch(l10nProvider);
+    final translations = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.ink,
@@ -72,7 +72,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l10n('app_name'),
+                        translations['app_name'] ?? 'app_name',
                         style: const TextStyle(
                           color: AppColors.gold,
                           fontSize: 42,

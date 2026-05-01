@@ -41,4 +41,25 @@ class AppTranslations {
       'nav_profile': 'Profile',
     }
   };
+
+  /// Get translation by language and key
+  /// Returns the value if found, otherwise returns the key itself
+  static String get(String languageCode, String key) {
+    return strings[languageCode]?[key] ?? key;
+  }
+
+  /// Get all strings for a specific language
+  static Map<String, String>? getLanguage(String languageCode) {
+    return strings[languageCode];
+  }
+
+  /// Check if language is supported
+  static bool isLanguageSupported(String languageCode) {
+    return strings.containsKey(languageCode);
+  }
+
+  /// Get supported languages
+  static List<String> getSupportedLanguages() {
+    return strings.keys.toList();
+  }
 }

@@ -12,7 +12,7 @@ class AuthScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final l10n = ref.watch(l10nProvider);
+    final translations = ref.watch(translationsProvider);
     final isLogin = authState.mode == AuthMode.login;
 
     return Scaffold(
@@ -25,8 +25,8 @@ class AuthScreen extends ConsumerWidget {
             'https://images.unsplash.com/photo-1590059345717-3d122f518e3c?q=80&w=1000',
             fit: BoxFit.cover,
           ),
-          Container(color: Colors.black.withOpacity(0.6)), // ปรับความเข้มพื้นหลังเพื่อให้ตัวอักษรอ่านง่ายขึ้น
-          
+          Container(color: Colors.black.withOpacity(0.6)),
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -49,46 +49,48 @@ class AuthScreen extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                isLogin ? l10n('login_title') : l10n('register_title'),
+                                isLogin
+                                    ? translations['login_title'] ?? ''
+                                    : translations['register_title'] ?? '',
                                 style: const TextStyle(
-                                  fontSize: 28, 
-                                  color: AppColors.gold, 
+                                  fontSize: 28,
+                                  color: AppColors.gold,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5
+                                  letterSpacing: 1.5,
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               _GlassTextField(
-                                hint: l10n('email_hint'), 
-                                icon: Icons.email_outlined
+                                hint: translations['email_hint'] ?? '',
+                                icon: Icons.email_outlined,
                               ),
                               const SizedBox(height: 16),
                               _GlassTextField(
-                                hint: l10n('password_hint'), 
-                                icon: Icons.lock_outline, 
-                                isPassword: true
+                                hint: translations['password_hint'] ?? '',
+                                icon: Icons.lock_outline,
+                                isPassword: true,
                               ),
-                              
+
                               // Smooth Reveal Confirm Password
                               AnimatedSize(
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeInOut,
-                                child: !isLogin 
+                                child: !isLogin
                                     ? Padding(
                                         padding: const EdgeInsets.only(top: 16.0),
                                         child: _GlassTextField(
-                                          hint: l10n('confirm_password_hint'), 
-                                          icon: Icons.lock_reset, 
-                                          isPassword: true
+                                          hint: translations['confirm_password_hint'] ?? '',
+                                          icon: Icons.lock_reset,
+                                          isPassword: true,
                                         ),
                                       )
                                     : const SizedBox.shrink(),
                               ),
-                              
+
                               const SizedBox(height: 32),
-                              
-                              // ✅ Submit Button - กดแล้วไปหน้า History
+
+                              // Submit Button
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -96,19 +98,27 @@ class AuthScreen extends ConsumerWidget {
                                     backgroundColor: AppColors.gold,
                                     foregroundColor: AppColors.ink,
                                     padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                     elevation: 8,
                                   ),
                                   onPressed: () {
-                                    // เปลี่ยนหน้าไป History ทันทีตามต้องการ
                                     Navigator.pushReplacement(
                                       context,
-                                      MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                                      MaterialPageRoute(
+                                        builder: (context) => const HistoryScreen(),
+                                      ),
                                     );
                                   },
                                   child: Text(
-                                    isLogin ? l10n('login_title') : l10n('register_title'),
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    isLogin
+                                        ? translations['login_title'] ?? ''
+                                        : translations['register_title'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -117,21 +127,22 @@ class AuthScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
-                    // ✅ Toggle Mode Button - สลับโหมด Login/Register
+
+                    // Toggle Mode Button
                     TextButton(
                       onPressed: () {
-                        // เรียกใช้ notifier เพื่อสลับโหมด UI
                         ref.read(authProvider.notifier).toggleMode();
                       },
                       child: Text(
-                        isLogin ? l10n('no_account') : l10n('has_account'),
+                        isLogin
+                            ? translations['no_account'] ?? ''
+                            : translations['has_account'] ?? '',
                         style: const TextStyle(
-                          color: AppColors.cream, 
+                          color: AppColors.cream,
                           fontSize: 15,
-                          decoration: TextDecoration.underline, // เพิ่มขีดเส้นใต้เพื่อให้รู้ว่ากดได้
+                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -152,13 +163,17 @@ class _GlassTextField extends StatelessWidget {
   final IconData icon;
   final bool isPassword;
 
-  const _GlassTextField({required this.hint, required this.icon, this.isPassword = false});
+  const _GlassTextField({
+    required this.hint,
+    required this.icon,
+    this.isPassword = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2), // ปรับให้มืดลงเล็กน้อยเพื่อให้พิมพ์เห็นชัด
+        color: Colors.black.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),

@@ -35,7 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final l10n = ref.watch(l10nProvider);
+    final translations = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.ink,
@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l10n('welcome').toUpperCase(),
+                          (translations['welcome'] ?? 'welcome').toUpperCase(),
                           style: const TextStyle(
                             color: AppColors.gold, 
                             fontSize: 16, 
@@ -104,7 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          l10n('app_name'),
+                          translations['app_name'] ?? 'app_name',
                           style: const TextStyle(
                             color: Colors.white, 
                             fontSize: 44, 
@@ -115,7 +115,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          l10n('home_desc'),
+                          translations['welcome'] ?? 'welcome',
                           style: TextStyle(
                             color: AppColors.cream.withOpacity(0.7), 
                             fontSize: 16, 
@@ -153,17 +153,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context); // ปิด Popup
-            
-                                  // แสดง SnackBar แจ้งเตือนว่าระบบแผนที่กำลังมา
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  Navigator.pop(context);
+                                  messenger.showSnackBar(
                                     const SnackBar(
-                content: Text('🗺️ กำลังเปิดแผนที่... (Coming Soon)'),
-                backgroundColor: AppColors.gold,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
+                                      content: Text('🗺️ กำลังเปิดแผนที่... (Coming Soon)'),
+                                      backgroundColor: AppColors.gold,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                              },
           child: const Text('เริ่มเลย!', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold)),
         ),
       ],
@@ -171,7 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   );
 },
                       child: Text(
-                        l10n('start_journey').toUpperCase(),
+                        (translations['start_journey'] ?? 'start_journey').toUpperCase(),
                         style: const TextStyle(
                           fontSize: 18, 
                           fontWeight: FontWeight.bold, 
