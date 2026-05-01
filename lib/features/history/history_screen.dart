@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
 import '../home/home_screen.dart';
+import '../main/main_screen.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -91,7 +92,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 context,
                 'จุดเริ่มต้นแห่งศรัทธา',
                 'ชุมชนริมน้ำจันทบูรมีประวัติศาสตร์ยาวนานกว่า 300 ปี เริ่มต้นจากการเป็นศูนย์กลางการค้าขายทางน้ำที่สำคัญของภาคตะวันออก',
-                'https://images.unsplash.com/photo-1590059345717-3d122f518e3c?q=80&w=800',
+                'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=800',
               ),
 
               _buildStorySection(
@@ -115,10 +116,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         elevation: 10,
                       ),
                       onPressed: () {
-                        // ✅ เชื่อมต่อไปหน้า Home
+                        // ✅ เชื่อมต่อไปหน้า MainScreen (ที่มี Bottom Nav)
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          MaterialPageRoute(builder: (context) => const MainScreen()),
                         );
                       },
                       child: const Row(

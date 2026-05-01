@@ -7,9 +7,7 @@ import 'main_provider.dart';
 // นำเข้าหน้าต่างๆ (จำลองการ import)
 import '../home/home_screen.dart';
 import '../map/map_screen.dart';
-import '../places/places_screen.dart';
-// import '../profile/profile_screen.dart'; 
-
+import '../settings/settings_screen.dart';
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
 
@@ -20,8 +18,7 @@ class MainScreen extends ConsumerWidget {
     final List<Widget> screens = [
       const HomeScreen(),
       const MapScreen(),
-      const PlacesScreen(),
-      const Center(child: Text('Profile Screen', style: TextStyle(color: AppColors.cream))), // Mock Profile
+      const SettingsScreen(),
     ];
 
     return Scaffold(
@@ -55,10 +52,9 @@ class MainScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _NavItem(index: 0, icon: Icons.home_rounded, label: 'หน้าแรก'),
+                  _NavItem(index: 0, icon: Icons.home_rounded, label: 'หน้าหลัก'),
                   _NavItem(index: 1, icon: Icons.map_rounded, label: 'แผนที่'),
-                  _NavItem(index: 2, icon: Icons.camera_alt_rounded, label: 'ภารกิจ'),
-                  _NavItem(index: 3, icon: Icons.person_rounded, label: 'โปรไฟล์'),
+                  _NavItem(index: 2, icon: Icons.settings_rounded, label: 'ตั้งค่า'),
                 ],
               ),
             ),

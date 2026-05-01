@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../main/main_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -87,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                     builder: (context, value, child) {
                       return Transform.translate(
                         offset: Offset(0, 40 * (1 - value)),
-                        child: Opacity(opacity: value, child: child),
+                        child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
                       );
                     },
                     child: Column(
@@ -155,15 +156,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                                 onPressed: () {
                                   Navigator.pop(context); // ปิด Popup
             
-                                  // แสดง SnackBar แจ้งเตือนว่าระบบแผนที่กำลังมา
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                content: Text('🗺️ กำลังเปิดแผนที่... (Coming Soon)'),
-                backgroundColor: AppColors.gold,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
+                                  // สลับไปยัง Tab แผนที่ (Index 1)
+                                  ref.read(bottomNavIndexProvider.notifier).state = 1;
+                                },
           child: const Text('เริ่มเลย!', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold)),
         ),
       ],

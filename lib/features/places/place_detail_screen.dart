@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import 'places_provider.dart';
+import '../camera/camera_screen.dart';
 
 class PlaceDetailScreen extends StatelessWidget {
   final Place place;
@@ -109,7 +110,12 @@ class PlaceDetailScreen extends StatelessWidget {
                         icon: const Icon(Icons.camera_alt),
                         label: const Text('เปิดกล้องถ่ายภาพ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         onPressed: () {
-                          // TODO: Navigate to CameraScreen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CameraScreen(placeId: place.id),
+                            ),
+                          );
                         },
                       ),
                     ),

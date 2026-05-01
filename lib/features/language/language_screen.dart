@@ -30,7 +30,7 @@ class LanguageScreen extends ConsumerWidget {
                 builder: (context, value, child) {
                   return Transform.scale(
                     scale: value,
-                    child: Opacity(opacity: value, child: child),
+                    child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
                   );
                 },
                 child: Column(
@@ -137,7 +137,7 @@ class _LanguageOption extends ConsumerWidget {
       builder: (context, value, child) {
         return Transform.translate(
           offset: Offset(0, 30 * (1 - value)),
-          child: Opacity(opacity: value, child: child),
+          child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
         );
       },
       child: GestureDetector(

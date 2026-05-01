@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import 'places_provider.dart';
+import 'place_detail_screen.dart';
 import 'widgets/place_card_widget.dart';
 
 class PlacesScreen extends ConsumerWidget {
@@ -46,7 +47,7 @@ class PlacesScreen extends ConsumerWidget {
                     curve: Curves.easeOutQuart,
                     builder: (context, value, child) {
                       return Opacity(
-                        opacity: value,
+                        opacity: value.clamp(0.0, 1.0),
                         child: Transform.translate(
                           offset: Offset(0, 50 * (1 - value)),
                           child: child,
@@ -56,7 +57,12 @@ class PlacesScreen extends ConsumerWidget {
                     child: PlaceCardWidget(
                       place: place,
                       onTap: () {
-                        // TODO: Navigate to Place Detail or Camera
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlaceDetailScreen(place: place),
+                          ),
+                        );
                       },
                     ),
                   );

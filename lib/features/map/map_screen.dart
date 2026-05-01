@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../places/places_provider.dart';
+import '../places/place_detail_screen.dart';
 import 'map_provider.dart';
 
 class MapScreen extends ConsumerWidget {
@@ -74,7 +75,7 @@ class MapScreen extends ConsumerWidget {
                 builder: (context, value, child) {
                   return Transform.translate(
                     offset: Offset(0, 50 * (1 - value)),
-                    child: Opacity(opacity: value, child: child),
+                    child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
                   );
                 },
                 child: _MapBottomCard(
@@ -171,7 +172,14 @@ class _MapBottomCard extends ConsumerWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.navigation_rounded, color: AppColors.gold),
-                onPressed: () {}, // Navigate to detail
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PlaceDetailScreen(place: place),
+                    ),
+                  );
+                }, // Navigate to detail
               )
             ],
           ),

@@ -22,7 +22,7 @@ class AuthScreen extends ConsumerWidget {
         children: [
           // Background Image (Blurred)
           Image.network(
-            'https://images.unsplash.com/photo-1590059345717-3d122f518e3c?q=80&w=1000',
+            'https://images.unsplash.com/photo-1548013146-72479768bbaa?q=80&w=1200',
             fit: BoxFit.cover,
           ),
           Container(color: Colors.black.withOpacity(0.6)), // ปรับความเข้มพื้นหลังเพื่อให้ตัวอักษรอ่านง่ายขึ้น

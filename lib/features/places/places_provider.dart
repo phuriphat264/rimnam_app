@@ -47,7 +47,7 @@ class PlacesNotifier extends StateNotifier<List<Place>> {
       id: '2',
       name: 'บ้านหลวงราชไมตรี',
       description: 'บ้านประวัติศาสตร์และพิพิธภัณฑ์',
-      imageUrl: 'https://images.unsplash.com/photo-1590059345717-3d122f518e3c?q=80&w=800&auto=format&fit=crop',
+      imageUrl: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=800&auto=format&fit=crop',
     ),
     const Place(
       id: '3',
