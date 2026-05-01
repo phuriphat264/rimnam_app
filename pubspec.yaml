@@ -1,0 +1,46 @@
+name: rimnam_chanthabun
+description: "แอปพลิเคชันประสบการณ์ท่องเที่ยวริมน้ำจันทบูรแบบ Interactive + Mission-based"
+
+# ป้องกันไม่ให้เผลออัปโหลดขึ้น pub.dev
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  # รองรับ Dart 3 ขึ้นไป
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- State Management & Storage ---
+  flutter_riverpod: ^2.4.9        # สำหรับจัดการ State และ Localization แบบ Reactive
+  shared_preferences: ^2.2.2      # สำหรับเซฟภาษาและสถานะภารกิจลงเครื่อง
+  
+  # --- UI & Design ---
+  google_fonts: ^6.1.0            # สำหรับโหลด Noto Serif Thai และ Playfair Display อัตโนมัติ
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+     - assets/images/
+     - assets/icons/
+
+  fonts:
+     - family: Noto Serif Thai
+       fonts:
+         - asset: assets/fonts/NotoSerifThai-Regular.ttf
+         - asset: assets/fonts/NotoSerifThai-Bold.ttf
+           weight: 700
+     - family: Playfair Display
+       fonts:
+         - asset: assets/fonts/CormorantGaramond-Regular.ttf
+         - asset: assets/fonts/CormorantGaramond-Bold.ttf
+           weight: 700
