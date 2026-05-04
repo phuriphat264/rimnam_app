@@ -15,183 +15,190 @@ class LanguageScreenPremium extends ConsumerWidget {
     final currentLang = selectedLang ?? 'en';
     final translations = AppTranslations.strings[currentLang] ?? AppTranslations.strings['en']!;
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final illustrationHeight = screenHeight * 0.18;
+    final verticalPadding = screenHeight * 0.03;
+    final titleFontSize = screenWidth * 0.08;
+    final isSmallScreen = screenHeight < 700;
+
     return Scaffold(
       backgroundColor: AppColors.ink,
       body: SafeArea(
-        child: Column(
-          children: [
-            // City Illustration at the top
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
-              child: _CityIllustration(),
-            ),
-            
-            // Main content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // App Title & Subtitle
-                    Text(
-                      translations['app_name']!,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        color: AppColors.gold,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                        height: 1.2,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      translations['app_subtitle']!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.mahogany,
-                        letterSpacing: 3.0,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: verticalPadding),
 
-                    // Divider with diamond
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
+                // City Illustration
+                SizedBox(
+                  height: illustrationHeight.clamp(100.0, 180.0),
+                  child: const _CityIllustration(),
+                ),
+
+                SizedBox(height: verticalPadding),
+
+                // App Title
+                Text(
+                  translations['app_name']!,
+                  style: TextStyle(
+                    fontSize: titleFontSize.clamp(24.0, 36.0),
+                    color: AppColors.gold,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    height: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: isSmallScreen ? 4.0 : 8.0),
+                Text(
+                  translations['app_subtitle']!,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 11.0 : 13.0,
+                    color: AppColors.mahogany,
+                    letterSpacing: 3.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                // Divider
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12.0 : 20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Transform.rotate(
+                        angle: 0.785,
+                        child: Container(width: 6, height: 6, color: AppColors.gold),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Language Label
+                Text(
+                  'เลือกภาษา  LANGUAGE',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 11.0 : 12.0,
+                    color: AppColors.mahogany,
+                    letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: isSmallScreen ? 12.0 : 20.0),
+
+                // Language Options
+                _LanguageOptionPremium(
+                  title: 'ภาษาไทย',
+                  subtitle: 'THAI',
+                  code: 'th',
+                  countryCode: 'TH',
+                  isSelected: selectedLang == 'th',
+                  delay: 200,
+                ),
+                SizedBox(height: isSmallScreen ? 8.0 : 12.0),
+                _LanguageOptionPremium(
+                  title: '中文',
+                  subtitle: 'CHINESE',
+                  code: 'zh',
+                  countryCode: 'CN',
+                  isSelected: selectedLang == 'zh',
+                  delay: 400,
+                ),
+                SizedBox(height: isSmallScreen ? 8.0 : 12.0),
+                _LanguageOptionPremium(
+                  title: 'English',
+                  subtitle: 'ENGLISH',
+                  code: 'en',
+                  countryCode: 'GB',
+                  isSelected: selectedLang == 'en',
+                  delay: 600,
+                ),
+
+                SizedBox(height: isSmallScreen ? 16.0 : 24.0),
+
+                // Button
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 500),
+                  opacity: selectedLang != null ? 1.0 : 0.5,
+                  child: IgnorePointer(
+                    ignoring: selectedLang == null,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: AppColors.ink,
+                        padding: EdgeInsets.symmetric(
+                          vertical: isSmallScreen ? 12.0 : 16.0,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 8,
+                        shadowColor: AppColors.gold.withOpacity(0.5),
+                      ),
+                      onPressed: selectedLang != null
+                          ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AuthScreen(),
+                                ),
+                              )
+                          : null,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.gold,
-                              shape: BoxShape.circle,
+                          Text(
+                            translations['continue_btn']!,
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 14.0 : 16.0,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.0,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Transform.rotate(
-                            angle: 0.785, // 45 degrees
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              color: AppColors.gold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.gold,
-                              shape: BoxShape.circle,
-                            ),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: isSmallScreen ? 16.0 : 18.0,
                           ),
                         ],
                       ),
                     ),
-
-                    // Language Label
-                    Text(
-                      'เลือกภาษา  LANGUAGE',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.mahogany,
-                        letterSpacing: 2.0,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Language Selectors (with Glassmorphism)
-                    _LanguageOptionPremium(
-                      title: 'ภาษาไทย',
-                      subtitle: 'THAI',
-                      code: 'th',
-                      countryCode: 'TH',
-                      isSelected: selectedLang == 'th',
-                      delay: 200,
-                    ),
-                    const SizedBox(height: 12),
-                    _LanguageOptionPremium(
-                      title: '中文',
-                      subtitle: 'CHINESE',
-                      code: 'zh',
-                      countryCode: 'CN',
-                      isSelected: selectedLang == 'zh',
-                      delay: 400,
-                    ),
-                    const SizedBox(height: 12),
-                    _LanguageOptionPremium(
-                      title: 'English',
-                      subtitle: 'ENGLISH',
-                      code: 'en',
-                      countryCode: 'GB',
-                      isSelected: selectedLang == 'en',
-                      delay: 600,
-                    ),
-
-                    const Spacer(),
-
-                    // Action Button
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 500),
-                      opacity: selectedLang != null ? 1.0 : 0.5,
-                      child: IgnorePointer(
-                        ignoring: selectedLang == null,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.gold,
-                            foregroundColor: AppColors.ink,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 8,
-                            shadowColor: AppColors.gold.withOpacity(0.5),
-                          ),
-                          onPressed: selectedLang != null
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const AuthScreen(),
-                                    ),
-                                  );
-                                }
-                              : null,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                translations['continue_btn']!,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
                 ),
-              ),
+                SizedBox(height: isSmallScreen ? 16.0 : 32.0),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
+// ============================================================
+// Language Option Widget
+// ============================================================
 class _LanguageOptionPremium extends ConsumerWidget {
   final String title;
   final String subtitle;
@@ -221,9 +228,7 @@ class _LanguageOptionPremium extends ConsumerWidget {
         );
       },
       child: GestureDetector(
-        onTap: () {
-          ref.read(languageProvider.notifier).selectLanguage(code);
-        },
+        onTap: () => ref.read(languageProvider.notifier).selectLanguage(code),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: BackdropFilter(
@@ -237,7 +242,7 @@ class _LanguageOptionPremium extends ConsumerWidget {
                     : AppColors.glassBackground,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected 
+                  color: isSelected
                       ? AppColors.gold.withOpacity(0.6)
                       : AppColors.glassBorder,
                   width: 1.5,
@@ -272,7 +277,7 @@ class _LanguageOptionPremium extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   // Language Name
                   Expanded(
                     child: Column(
@@ -283,7 +288,9 @@ class _LanguageOptionPremium extends ConsumerWidget {
                           style: TextStyle(
                             color: isSelected ? AppColors.gold : AppColors.cream,
                             fontSize: 16,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -298,13 +305,13 @@ class _LanguageOptionPremium extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  
+
                   // Selection Indicator
                   if (isSelected)
                     Container(
                       width: 24,
                       height: 24,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.gold,
                         shape: BoxShape.circle,
                       ),
@@ -319,7 +326,6 @@ class _LanguageOptionPremium extends ConsumerWidget {
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: Colors.transparent,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: AppColors.mahogany.withOpacity(0.5),
@@ -337,7 +343,9 @@ class _LanguageOptionPremium extends ConsumerWidget {
   }
 }
 
+// ============================================================
 // City Illustration Widget
+// ============================================================
 class _CityIllustration extends StatelessWidget {
   const _CityIllustration();
 
@@ -345,7 +353,6 @@ class _CityIllustration extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 140,
       decoration: BoxDecoration(
         color: AppColors.espresso.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
@@ -373,88 +380,18 @@ class _CityIllustration extends StatelessWidget {
           ),
 
           // Stars
-          Positioned(
-            top: 16,
-            left: 30,
-            child: _Star(size: 2),
-          ),
-          Positioned(
-            top: 24,
-            left: 70,
-            child: _Star(size: 1.5),
-          ),
-          Positioned(
-            top: 20,
-            right: 40,
-            child: _Star(size: 2),
-          ),
-          Positioned(
-            top: 32,
-            right: 80,
-            child: _Star(size: 1),
-          ),
+          Positioned(top: 16, left: 30, child: _Star(size: 2)),
+          Positioned(top: 24, left: 70, child: _Star(size: 1.5)),
+          Positioned(top: 20, right: 40, child: _Star(size: 2)),
+          Positioned(top: 32, right: 80, child: _Star(size: 1)),
 
           // Buildings
-          Positioned(
-            bottom: 30,
-            left: 20,
-            child: _Building(
-              width: 35,
-              height: 60,
-              windows: 4,
-              color: AppColors.mahogany.withOpacity(0.8),
-            ),
-          ),
-          Positioned(
-            bottom: 25,
-            left: 60,
-            child: _Building(
-              width: 32,
-              height: 70,
-              windows: 6,
-              color: AppColors.mahogany,
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 98,
-            child: _Building(
-              width: 35,
-              height: 75,
-              windows: 6,
-              color: AppColors.mahogany.withOpacity(0.9),
-            ),
-          ),
-          Positioned(
-            bottom: 15,
-            left: 138,
-            child: _Building(
-              width: 32,
-              height: 85,
-              windows: 8,
-              color: AppColors.mahogany.withOpacity(0.85),
-            ),
-          ),
-          Positioned(
-            bottom: 25,
-            left: 175,
-            child: _Building(
-              width: 35,
-              height: 70,
-              windows: 6,
-              color: AppColors.mahogany.withOpacity(0.8),
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 215,
-            child: _Building(
-              width: 32,
-              height: 60,
-              windows: 4,
-              color: AppColors.mahogany,
-            ),
-          ),
+          Positioned(bottom: 30, left: 20, child: _Building(width: 35, height: 60, windows: 4, color: AppColors.mahogany.withOpacity(0.8))),
+          Positioned(bottom: 25, left: 60, child: _Building(width: 32, height: 70, windows: 6, color: AppColors.mahogany)),
+          Positioned(bottom: 20, left: 98, child: _Building(width: 35, height: 75, windows: 6, color: AppColors.mahogany.withOpacity(0.9))),
+          Positioned(bottom: 15, left: 138, child: _Building(width: 32, height: 85, windows: 8, color: AppColors.mahogany.withOpacity(0.85))),
+          Positioned(bottom: 25, left: 175, child: _Building(width: 35, height: 70, windows: 6, color: AppColors.mahogany.withOpacity(0.8))),
+          Positioned(bottom: 30, left: 215, child: _Building(width: 32, height: 60, windows: 4, color: AppColors.mahogany)),
 
           // Moon
           Positioned(
@@ -466,15 +403,12 @@ class _CityIllustration extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.espresso,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.honey,
-                  width: 1.5,
-                ),
+                border: Border.all(color: AppColors.honey, width: 1.5),
               ),
             ),
           ),
 
-          // River/Water at bottom
+          // River
           Container(
             height: 20,
             decoration: BoxDecoration(
@@ -513,40 +447,35 @@ class _Building extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(4),
-              topRight: Radius.circular(4),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
-            child: GridView.count(
-              crossAxisCount: 2,
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: List.generate(
-                windows,
-                (index) => Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.honey.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(4),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+        child: GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 2,
+          crossAxisSpacing: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: List.generate(
+            windows,
+            (index) => Container(
+              decoration: BoxDecoration(
+                color: AppColors.honey.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(1),
               ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -561,7 +490,7 @@ class _Star extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.amber,
         shape: BoxShape.circle,
       ),
