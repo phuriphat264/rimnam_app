@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../places/places_provider.dart';
-// แก้ไข path ให้ชี้ไปหน้า CameraScreen ของคุณ
-import '../camera/camera_screen.dart'; 
-
+import '../camera/camera_screen.dart';
+import '../places/place_model.dart';
 class PlaceDetailScreen extends ConsumerWidget {
   final Place place;
-  final int index; 
+  final int index;
 
   const PlaceDetailScreen({
-    super.key, 
+    super.key,
     required this.place,
     required this.index,
   });
@@ -23,24 +22,35 @@ class PlaceDetailScreen extends ConsumerWidget {
     final isDone = place.status == PlaceStatus.done;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5ECD8), // สีพื้นหลัง Linen Premium
+      backgroundColor: const Color(0xFFF5ECD8),
       body: Column(
         children: [
-          // 1. ส่วนภาพ Cover ด้านบน (Hero Section)
+          // ==========================================
+          // HERO SECTION - รูปภาพด้านบน
+          // ==========================================
           SizedBox(
             height: 280,
             width: double.infinity,
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // รูปภาพเฉพาะของแต่ละสถานที่
                 Image.network(
-                  place.imageUrl.isNotEmpty 
-                      ? place.imageUrl 
+                  place.imageUrl.isNotEmpty
+                      ? place.imageUrl
                       : 'https://images.unsplash.com/photo-1548013146-72479768bbaa?q=80&w=800&auto=format&fit=crop',
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: AppColors.mahogany,
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, color: Colors.white),
+                      ),
+                    );
+                  },
                 ),
-                
-                // Gradient ทับรูปภาพให้ตัวหนังสืออ่านง่าย
+
+                // Gradient ทับรูปให้ข้อความอ่านง่าย
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -56,7 +66,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // แถบเมนูด้านบน (ปุ่มกลับ + ป้าย Mission)
+                // ==========================================
+                // TOP BAR - ปุ่มกลับ + ข้อมูลภารกิจ
+                // ==========================================
                 SafeArea(
                   child: Align(
                     alignment: Alignment.topCenter,
@@ -72,15 +84,18 @@ class PlaceDetailScreen extends ConsumerWidget {
                               child: BackdropFilter(
                                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.35),
-                                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(0.1)),
                                     borderRadius: BorderRadius.circular(22),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 14),
+                                      Icon(Icons.arrow_back_ios_new,
+                                          color: Colors.white, size: 14),
                                       SizedBox(width: 4),
                                       Text(
                                         'กลับ',
@@ -96,16 +111,17 @@ class PlaceDetailScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          
                           ClipRRect(
                             borderRadius: BorderRadius.circular(22),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: AppColors.gold.withOpacity(0.22),
-                                  border: Border.all(color: AppColors.gold.withOpacity(0.42)),
+                                  border: Border.all(
+                                      color: AppColors.gold.withOpacity(0.42)),
                                   borderRadius: BorderRadius.circular(22),
                                 ),
                                 child: Text(
@@ -127,7 +143,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // ข้อความชื่อสถานที่ด้านล่างของรูป
+                // ==========================================
+                // PLACE NAME - ด้านล่างของรูป
+                // ==========================================
                 Positioned(
                   bottom: 20,
                   left: 20,
@@ -136,7 +154,8 @@ class PlaceDetailScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SPOT · ${index.toString().padLeft(2, '0')} OF ${totalPlaces.toString().padLeft(2, '0')}',
+                        // ใช้ Double Quote ครอบรอบนอก เพื่อไม่ให้ชนกับ Single Quote ด้านใน
+                        "SPOT · ${index.toString().padLeft(2, '0')} OF ${totalPlaces.toString().padLeft(2, '0')}",
                         style: TextStyle(
                           fontFamily: 'Cormorant Garamond',
                           fontSize: 10,
@@ -153,7 +172,21 @@ class PlaceDetailScreen extends ConsumerWidget {
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          shadows: [Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))],
+                          shadows: [
+                            Shadow(
+                                color: Colors.black54,
+                                blurRadius: 4,
+                                offset: Offset(0, 2))
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        place.location,
+                        style: TextStyle(
+                          fontFamily: 'Noto Serif Thai',
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
@@ -163,7 +196,9 @@ class PlaceDetailScreen extends ConsumerWidget {
             ),
           ),
 
-          // 2. ส่วนเนื้อหาด้านล่าง
+          // ==========================================
+          // CONTENT SECTION - เนื้อหาด้านล่าง
+          // ==========================================
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -171,9 +206,9 @@ class PlaceDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // รายละเอียดสถานที่
+                  // ======== คำอธิบายสถานที่ ========
                   Text(
-                    'สถานที่สำคัญในชุมชนริมน้ำจันทบูร เป็นจุดเช็คอินที่คุณต้องค้นหาและบันทึกภาพเพื่อปลดล็อกเรื่องราวทางประวัติศาสตร์ที่ซ่อนอยู่...', 
+                    place.longDescription,
                     style: TextStyle(
                       fontFamily: 'Noto Serif Thai',
                       fontSize: 14,
@@ -183,7 +218,51 @@ class PlaceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // กล่องคำใบ้ (Hint Box)
+                  // ======== ประวัติศาสตร์ ========
+                  if (place.historicalBackground.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ประวัติศาสตร์',
+                          style: TextStyle(
+                            fontFamily: 'Noto Serif Thai',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.mahogany,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.mahogany.withOpacity(0.06),
+                            border: Border(
+                              left: BorderSide(
+                              color: AppColors.mahogany.withOpacity(0.3),
+                              width: 4,
+                            ),
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(8),
+                              bottomRight: Radius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            place.historicalBackground,
+                            style: TextStyle(
+                              fontFamily: 'Noto Serif Thai',
+                              fontSize: 13,
+                              height: 1.7,
+                              color: AppColors.mahogany.withOpacity(0.85),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+
+                  // ======== กล่องคำใบ้ ========
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -218,9 +297,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                isDone 
-                                  ? 'คุณทำภารกิจจุดนี้สำเร็จแล้ว ยอดเยี่ยมมาก!'
-                                  : 'ถ่ายรูปให้เห็นจุดสังเกตสำคัญของสถานที่นี้อย่างชัดเจน เพื่อยืนยันการสำรวจ',
+                                isDone
+                                    ? 'คุณทำภารกิจจุดนี้สำเร็จแล้ว ยอดเยี่ยมมาก! 🎉'
+                                    : place.hint,
                                 style: const TextStyle(
                                   fontFamily: 'Noto Serif Thai',
                                   fontSize: 12,
@@ -236,7 +315,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // จุดไข่ปลาบอกความคืบหน้าภารกิจ (Step Row)
+                  // ======== Progress Dots ========
                   Row(
                     children: [
                       ...List.generate(totalPlaces, (i) {
@@ -247,9 +326,11 @@ class PlaceDetailScreen extends ConsumerWidget {
                           width: isCur ? 20 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: isCompleted 
-                                ? AppColors.sage 
-                                : (isCur ? AppColors.gold : AppColors.mahogany.withOpacity(0.15)),
+                            color: isCompleted
+                                ? AppColors.sage
+                                : (isCur
+                                    ? AppColors.gold
+                                    : AppColors.mahogany.withOpacity(0.15)),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         );
@@ -269,25 +350,30 @@ class PlaceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // ปุ่มเปิดกล้อง (Camera Button)
+                  // ======== ปุ่มถ่ายภาพ ========
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: Colors.transparent, 
+                        backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ).copyWith(elevation: WidgetStateProperty.all(0)),
+                        elevation: 0, // ปรับให้ elevation เป็น 0 ตรงนี้แทนการใช้ copyWith
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                       onPressed: () {
                         if (isDone) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('คุณทำภารกิจสถานที่นี้เสร็จแล้ว 🎉'), backgroundColor: AppColors.sage)
+                            const SnackBar(
+                              content: Text('คุณทำภารกิจสถานที่นี้เสร็จแล้ว 🎉'),
+                              backgroundColor: AppColors.sage,
+                            ),
                           );
                           return;
                         }
-                        
-                        // นำทางไปหน้ากล้อง
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -304,7 +390,11 @@ class PlaceDetailScreen extends ConsumerWidget {
                           ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
-                            BoxShadow(color: const Color(0xFF1C0E04).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))
+                            BoxShadow(
+                              color: const Color(0xFF1C0E04).withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            )
                           ],
                         ),
                         child: Container(
@@ -313,7 +403,11 @@ class PlaceDetailScreen extends ConsumerWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(isDone ? Icons.check_circle : Icons.camera_alt, color: AppColors.amber, size: 20),
+                              Icon(
+                                isDone ? Icons.check_circle : Icons.camera_alt,
+                                color: AppColors.amber,
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Text(
                                 isDone ? 'ภารกิจเสร็จสิ้น' : 'ถ่ายภาพ ณ สถานที่นี้',
@@ -331,6 +425,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

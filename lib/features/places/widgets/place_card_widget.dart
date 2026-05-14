@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../places_provider.dart';
+import '../../places/place_model.dart';
 
 class PlaceCardWidget extends StatefulWidget {
   final Place place;

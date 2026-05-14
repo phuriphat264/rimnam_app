@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../places/places_provider.dart';
+import '../places/place_model.dart'; 
+
+// เชื่อมต่อไฟล์หน้าความสำเร็จ
+import '../mission/completion_screen.dart' ;
 
 class CameraScreen extends ConsumerStatefulWidget {
   final String placeId;
@@ -20,7 +24,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    // Animation สำหรับจุดโฟกัสตรงกลาง (Pulsing Dot)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -37,41 +40,64 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
     super.dispose();
   }
 
+  // ==========================================
+  // ฟังก์ชันถ่ายภาพและเช็คเงื่อนไขการไปหน้า Completion
+  // ==========================================
   void _takePicture() async {
     setState(() => _isFlashing = true);
     await Future.delayed(const Duration(milliseconds: 100));
     setState(() => _isFlashing = false);
     
-    // Simulate processing time
+    // จำลองช่วงเวลาการประมวลผล (Processing)
     await Future.delayed(const Duration(seconds: 1));
     
-    // Update State (อัปเดตสถานะว่าทำภารกิจสำเร็จ)
+    // 1. อัปเดตสถานะใน Provider ว่าด่านนี้สำเร็จแล้ว
     ref.read(placesProvider.notifier).completeMission(widget.placeId);
     
-    // Pop back to success screen
-    if (mounted) Navigator.pop(context);
+    // 2. ตรวจสอบว่าทำครบทุกด่าน (6/6) หรือยัง
+    final places = ref.read(placesProvider);
+    final isAllDone = places.every((p) => p.status == PlaceStatus.done);
+
+    if (mounted) {
+      if (isAllDone) {
+        // ถ้าครบทุกด่าน: นำทางไปหน้า CompletionScreen
+        // ใช้ pushAndRemoveUntil เพื่อล้าง stack ไม่ให้กดย้อนกลับมาหน้ากล้องได้
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const CompletionScreen()),
+          (route) => false, 
+        );
+      } else {
+        // ถ้ายังไม่ครบ: กลับไปหน้าก่อนหน้า (Detail) ปกติ
+        Navigator.pop(context);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ดึงข้อมูลสถานที่เพื่อมาแสดงชื่อ
+    // ดึงข้อมูลสถานที่ทั้งหมดจาก Provider
     final places = ref.watch(placesProvider);
+    
+    // ค้นหาสถานที่ปัจจุบันจาก ID
     final place = places.firstWhere(
       (p) => p.id == widget.placeId, 
-      orElse: () => places.first, // Fallback
+      orElse: () => places.first,
     );
+    
+    // หาตำแหน่ง Index ของสถานที่นี้
     final currentIndex = places.indexOf(place);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050302), // สีพื้นหลังเข้มสุด
+      backgroundColor: const Color(0xFF050302),
       body: Column(
         children: [
-          // 1. ส่วนช่องมองภาพกล้อง (Viewfinder)
+          // ส่วน Viewfinder (ช่องมองภาพ)
           Expanded(
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Mock Camera Feed (ภาพจากกล้อง)
+                // แสดงภาพจำลองจากสถานที่
                 Image.network(
                   place.imageUrl.isNotEmpty 
                       ? place.imageUrl 
@@ -79,16 +105,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                   fit: BoxFit.cover,
                 ),
 
-                // เส้น Grid บางๆ สไตล์กล้อง
+                // เส้นกริดของกล้อง
                 CustomPaint(painter: _ViewfinderGridPainter()),
 
-                // กรอบ Bracket สีทอง 4 มุม
+                // กรอบมุมทั้ง 4 ด้าน
                 const Positioned(top: 80, left: 24, child: _CornerBracket(alignment: Alignment.topLeft)),
                 const Positioned(top: 80, right: 24, child: _CornerBracket(alignment: Alignment.topRight)),
                 const Positioned(bottom: 24, left: 24, child: _CornerBracket(alignment: Alignment.bottomLeft)),
                 const Positioned(bottom: 24, right: 24, child: _CornerBracket(alignment: Alignment.bottomRight)),
 
-                // จุด Focus กระพริบตรงกลาง
+                // จุดโฟกัสกระพริบตรงกลาง
                 Center(
                   child: AnimatedBuilder(
                     animation: _pulseAnimation,
@@ -111,7 +137,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                   ),
                 ),
 
-                // Top HUD (แถบข้อมูลด้านบน)
+                // ส่วน HUD ด้านบน (แสดงชื่อสถานที่และจำนวนด่าน)
                 Positioned(
                   top: 0, left: 0, right: 0,
                   child: Container(
@@ -125,18 +151,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'กำลังถ่าย · SHOOTING',
                               style: TextStyle(
                                 fontFamily: 'Cormorant Garamond',
                                 fontSize: 10,
                                 letterSpacing: 3,
-                                color: Colors.white.withOpacity(0.45),
+                                color: Colors.white70,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -163,7 +188,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                             style: const TextStyle(
                               fontFamily: 'Cormorant Garamond',
                               fontSize: 10,
-                              letterSpacing: 2,
                               color: AppColors.amber,
                               fontWeight: FontWeight.bold,
                             ),
@@ -174,25 +198,24 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                   ),
                 ),
 
-                // Flash Effect
-                if (_isFlashing)
-                  Container(color: Colors.white),
+                // เอฟเฟกต์แฟลชเมื่อกดถ่าย
+                if (_isFlashing) Container(color: Colors.white),
               ],
             ),
           ),
 
-          // 2. ส่วนควบคุมด้านล่าง (Bottom Controls)
+          // ส่วนควบคุมด้านล่าง (Bottom Controls)
           Container(
             color: const Color(0xFF0A0704),
             padding: const EdgeInsets.only(top: 16, bottom: 40, left: 24, right: 24),
             child: Column(
               children: [
-                // จุด Progress
+                // แสดงจุด Progress
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(places.length, (index) {
                     bool isCur = index == currentIndex;
-                    bool isDone = index < currentIndex;
+                    bool isDone = places[index].status == PlaceStatus.done;
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 3),
                       width: isCur ? 18 : 6,
@@ -200,80 +223,29 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         color: isDone 
                             ? AppColors.sage 
-                            : (isCur ? AppColors.gold : Colors.white.withOpacity(0.1)),
+                            : (isCur ? AppColors.gold : Colors.white10),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     );
                   }),
                 ),
                 const SizedBox(height: 12),
-                
-                // คำใบ้
                 Text(
                   'จัดเฟรมให้เห็นสถานที่แล้วกดถ่าย',
                   style: TextStyle(
                     fontFamily: 'Noto Serif Thai',
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.3),
-                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // แถบปุ่มกด
+                // แถบปุ่มกดแฟลช, ชัตเตอร์ และปุ่มปิด
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // ปุ่มเปิดแฟลช
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.05),
-                        border: Border.all(color: Colors.white.withOpacity(0.09)),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.flash_on, color: Colors.white.withOpacity(0.7), size: 20),
-                        onPressed: () {}, // TODO: Toggle Flash
-                      ),
-                    ),
-                    
-                    // ปุ่ม Shutter (Premium Style)
-                    GestureDetector(
-                      onTap: _takePicture,
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        padding: const EdgeInsets.all(4), // ระยะห่างวงใน
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
-                          boxShadow: [
-                            BoxShadow(color: Colors.white.withOpacity(0.08), blurRadius: 20)
-                          ],
-                        ),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // ปุ่มปิด/กลับ
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.05),
-                        border: Border.all(color: Colors.white.withOpacity(0.09)),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.close, color: Colors.white.withOpacity(0.7), size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
+                    _ControlButton(icon: Icons.flash_on, onTap: () {}),
+                    _ShutterButton(onTap: _takePicture),
+                    _ControlButton(icon: Icons.close, onTap: () => Navigator.pop(context)),
                   ],
                 ),
               ],
@@ -285,9 +257,58 @@ class _CameraScreenState extends ConsumerState<CameraScreen> with SingleTickerPr
   }
 }
 
-// ==========================================
-// Widget วาดมุมกรอบโฟกัส (Brackets)
-// ==========================================
+// Widget ปุ่มชัตเตอร์
+class _ShutterButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ShutterButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 76,
+        height: 76,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24, width: 2),
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Widget ปุ่มควบคุมจิปาถะ (แฟลช, ปิด)
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ControlButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48, height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.05),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white70, size: 20),
+        onPressed: onTap,
+      ),
+    );
+  }
+}
+
+// Widget วาดมุมกรอบในกล้อง
 class _CornerBracket extends StatelessWidget {
   final Alignment alignment;
   const _CornerBracket({required this.alignment});
@@ -299,11 +320,9 @@ class _CornerBracket extends StatelessWidget {
     final color = AppColors.gold.withOpacity(0.7);
 
     return SizedBox(
-      width: size,
-      height: size,
+      width: size, height: size,
       child: Stack(
         children: [
-          // เส้นแนวนอน
           Positioned(
             top: (alignment == Alignment.topLeft || alignment == Alignment.topRight) ? 0 : null,
             bottom: (alignment == Alignment.bottomLeft || alignment == Alignment.bottomRight) ? 0 : null,
@@ -311,7 +330,6 @@ class _CornerBracket extends StatelessWidget {
             right: (alignment == Alignment.topRight || alignment == Alignment.bottomRight) ? 0 : null,
             child: Container(width: size, height: strokeWidth, color: color),
           ),
-          // เส้นแนวตั้ง
           Positioned(
             top: (alignment == Alignment.topLeft || alignment == Alignment.topRight) ? 0 : null,
             bottom: (alignment == Alignment.bottomLeft || alignment == Alignment.bottomRight) ? 0 : null,
@@ -325,22 +343,17 @@ class _CornerBracket extends StatelessWidget {
   }
 }
 
-// ==========================================
-// Painter สำหรับวาดลายเส้นแนวนอนบางๆ ในกล้อง
-// ==========================================
+// Painter สำหรับวาดลายเส้นเส้น Grid
 class _ViewfinderGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Colors.black.withOpacity(0.06)
       ..strokeWidth = 1.0;
-
-    // วาดเส้นแนวนอนทุกๆ 4 pixels
     for (double i = 0; i < size.height; i += 4) {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
