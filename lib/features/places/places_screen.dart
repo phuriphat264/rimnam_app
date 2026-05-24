@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/l10n_provider.dart';
 import 'places_provider.dart';
 import 'place_detail_screen.dart';
 import 'widgets/place_card_widget.dart';
@@ -11,6 +12,7 @@ class PlacesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final places = ref.watch(placesProvider);
+    final translations = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.ink,
@@ -21,11 +23,11 @@ class PlacesScreen extends ConsumerWidget {
             backgroundColor: AppColors.ink,
             pinned: true,
             expandedHeight: 120,
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               title: Text(
-                'ภารกิจ 6 สถานที่',
-                style: TextStyle(
+                translations['places_title'] ?? 'ภารกิจ 6 สถานที่',
+                style: const TextStyle(
                   color: AppColors.gold,
                   fontWeight: FontWeight.bold,
                 ),
@@ -60,7 +62,7 @@ class PlacesScreen extends ConsumerWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PlaceDetailScreen(place: place),
+                            builder: (context) => PlaceDetailScreen(place: place, index: index),
                           ),
                         );
                       },

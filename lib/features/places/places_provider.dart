@@ -1,92 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// แก้ไขบรรทัดนี้ เอาตัว s ออกให้ตรงกับชื่อไฟล์ของคุณ
+import 'place_model.dart'; 
 
-enum PlaceStatus { locked, active, done }
-
-class Place {
-  final String id;
-  final String name;
-  final String description;
-  final String imageUrl;
-  final PlaceStatus status;
-
-  const Place({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.imageUrl,
-    this.status = PlaceStatus.locked,
-  });
-
-  Place copyWith({PlaceStatus? status}) {
-    return Place(
-      id: id,
-      name: name,
-      description: description,
-      imageUrl: imageUrl,
-      status: status ?? this.status,
-    );
-  }
-}
-
+// Provider หลัก
 final placesProvider = StateNotifierProvider<PlacesNotifier, List<Place>>((ref) {
   return PlacesNotifier();
 });
 
+// Provider สำหรับดึงข้อมูลรายตัว
+final placeByIdProvider = Provider.family<Place?, String>((ref, placeId) {
+  final places = ref.watch(placesProvider);
+  try {
+    return places.firstWhere((place) => place.id == placeId);
+  } catch (e) {
+    return null;
+  }
+});
+
+// Provider สำหรับนับจำนวนความสำเร็จ
+final completedCountProvider = Provider<int>((ref) {
+  final places = ref.watch(placesProvider);
+  return places.where((p) => p.status == PlaceStatus.done).length;
+});
+
+// Notifier ควบคุม Logic
 class PlacesNotifier extends StateNotifier<List<Place>> {
-  PlacesNotifier() : super(_initialPlaces);
+  // ดึง mockPlaces จาก place_model.dart มาเป็นค่าเริ่มต้น
+  PlacesNotifier() : super(mockPlaces);
 
-  static final List<Place> _initialPlaces = [
-    const Place(
-      id: '1',
-      name: 'อาสนวิหารพระนางมารีอา',
-      description: 'โบสถ์คาทอลิกที่สวยที่สุดในภาคตะวันออก',
-      imageUrl: 'https://images.unsplash.com/photo-1601614050212-921d7b1a201c?q=80&w=800&auto=format&fit=crop',
-      status: PlaceStatus.active, // จุดแรกเริ่มเป็น Active
-    ),
-    const Place(
-      id: '2',
-      name: 'บ้านหลวงราชไมตรี',
-      description: 'บ้านประวัติศาสตร์และพิพิธภัณฑ์',
-      imageUrl: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=800&auto=format&fit=crop',
-    ),
-    const Place(
-      id: '3',
-      name: 'ชุมชนตลาดล่าง',
-      description: 'วิถีชีวิตดั้งเดิมของชาวจันทบูร',
-      imageUrl: 'https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?q=80&w=800&auto=format&fit=crop',
-    ),
-    const Place(
-      id: '4',
-      name: 'ศาลเจ้าตั้วเล่าเอี้ย',
-      description: 'ศูนย์รวมจิตใจชาวไทยเชื้อสายจีน',
-      imageUrl: 'https://images.unsplash.com/photo-1555581938-16e5ce79860b?q=80&w=800&auto=format&fit=crop',
-    ),
-    const Place(
-      id: '5',
-      name: 'ตรอกกระจ่าง',
-      description: 'มุมถ่ายภาพสตรีทอาร์ตสุดคลาสสิก',
-      imageUrl: 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?q=80&w=800&auto=format&fit=crop',
-    ),
-    const Place(
-      id: '6',
-      name: 'สะพานนิรมล',
-      description: 'จุดชมวิวแม่น้ำจันทบูรที่สวยที่สุด',
-      imageUrl: 'https://images.unsplash.com/photo-1565551980860-90fb33767f4a?q=80&w=800&auto=format&fit=crop',
-    ),
-  ];
-
-  // Logic สำหรับอัปเดตสถานะเมื่อทำภารกิจสำเร็จ
   void completeMission(String id) {
     final index = state.indexWhere((p) => p.id == id);
     if (index != -1) {
       final newList = List<Place>.from(state);
+      
       newList[index] = newList[index].copyWith(status: PlaceStatus.done);
       
-      // ปลดล็อคจุดถัดไป
       if (index + 1 < newList.length) {
-        newList[index + 1] = newList[index + 1].copyWith(status: PlaceStatus.active);
+        if (newList[index + 1].status == PlaceStatus.locked) {
+          newList[index + 1] = newList[index + 1].copyWith(status: PlaceStatus.active);
+        }
       }
+      
       state = newList;
     }
+  }
+
+  void resetProgress() {
+    state = [
+      for (int i = 0; i < state.length; i++)
+        state[i].copyWith(status: i == 0 ? PlaceStatus.active : PlaceStatus.locked)
+    ];
   }
 }

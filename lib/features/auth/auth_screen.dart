@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../../core/widgets/city_illustration.dart';
 import 'auth_provider.dart';
 import '../history/history_screen.dart';
 
@@ -12,126 +12,225 @@ class AuthScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final l10n = ref.watch(l10nProvider);
+    final translations = ref.watch(translationsProvider);
     final isLogin = authState.mode == AuthMode.login;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
 
     return Scaffold(
-      backgroundColor: AppColors.ink,
-      body: Stack(
-        fit: StackFit.expand,
+      backgroundColor: AppColors.linen,
+      body: Column(
         children: [
-          // Background Image (Blurred)
-          Image.network(
-            'https://images.unsplash.com/photo-1548013146-72479768bbaa?q=80&w=1200',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.black.withOpacity(0.6)), // ปรับความเข้มพื้นหลังเพื่อให้ตัวอักษรอ่านง่ายขึ้น
-          
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+          // ── Hero Section ──
+          Container(
+            color: AppColors.ink,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Glassmorphic Card
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
-                            border: Border.all(color: Colors.white.withOpacity(0.2)),
-                            borderRadius: BorderRadius.circular(32),
+                    // City Illustration
+                    SizedBox(
+                      height: isSmallScreen ? 110.0 : 140.0,
+                      child: const CityIllustration(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Title
+                    Text(
+                      isLogin
+                          ? translations['login_title'] ?? ''
+                          : translations['register_title'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Form Section ──
+          Expanded(
+            child: Container(
+              color: AppColors.linen,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      isLogin
+                          ? translations['login_title'] ?? ''
+                          : translations['register_title'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.espresso,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      isLogin
+                          ? translations['login_subtitle'] ?? 'ยินดีต้อนรับกลับ'
+                          : translations['register_subtitle'] ?? 'สร้างบัญชีเพื่อเริ่มการเดินทาง',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.sienna,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email
+                    _FieldLabel(label: translations['email_hint'] ?? 'อีเมล'),
+                    _FormField(
+                      hint: translations['email_hint'] ?? '',
+                      icon: Icons.email_outlined,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Password
+                    _FieldLabel(label: translations['password_hint'] ?? 'รหัสผ่าน'),
+                    _FormField(
+                      hint: translations['password_hint'] ?? '',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+
+                    // Forgot Password
+                    if (isLogin)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isLogin ? l10n('login_title') : l10n('register_title'),
-                                style: const TextStyle(
-                                  fontSize: 28, 
-                                  color: AppColors.gold, 
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5
+                          child: Text(
+                            translations['forgot_password'] ?? 'ลืมรหัสผ่าน?',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.caramel,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Confirm Password (Register)
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOut,
+                      child: !isLogin
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 12),
+                                _FieldLabel(
+                                  label: translations['confirm_password_hint'] ?? 'ยืนยันรหัสผ่าน',
                                 ),
-                              ),
-                              const SizedBox(height: 32),
-                              
-                              _GlassTextField(
-                                hint: l10n('email_hint'), 
-                                icon: Icons.email_outlined
-                              ),
-                              const SizedBox(height: 16),
-                              _GlassTextField(
-                                hint: l10n('password_hint'), 
-                                icon: Icons.lock_outline, 
-                                isPassword: true
-                              ),
-                              
-                              // Smooth Reveal Confirm Password
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOut,
-                                child: !isLogin 
-                                    ? Padding(
-                                        padding: const EdgeInsets.only(top: 16.0),
-                                        child: _GlassTextField(
-                                          hint: l10n('confirm_password_hint'), 
-                                          icon: Icons.lock_reset, 
-                                          isPassword: true
-                                        ),
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                              
-                              const SizedBox(height: 32),
-                              
-                              // ✅ Submit Button - กดแล้วไปหน้า History
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.gold,
-                                    foregroundColor: AppColors.ink,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    elevation: 8,
-                                  ),
-                                  onPressed: () {
-                                    // เปลี่ยนหน้าไป History ทันทีตามต้องการ
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const HistoryScreen()),
-                                    );
-                                  },
-                                  child: Text(
-                                    isLogin ? l10n('login_title') : l10n('register_title'),
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
+                                _FormField(
+                                  hint: translations['confirm_password_hint'] ?? '',
+                                  icon: Icons.lock_reset,
+                                  isPassword: true,
                                 ),
-                              ),
-                            ],
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.gold,
+                          foregroundColor: AppColors.espresso,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 8,
+                          shadowColor: AppColors.gold.withOpacity(0.35),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          isLogin
+                              ? translations['login_title'] ?? ''
+                              : translations['register_title'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 3,
                           ),
                         ),
                       ),
                     ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // ✅ Toggle Mode Button - สลับโหมด Login/Register
-                    TextButton(
-                      onPressed: () {
-                        // เรียกใช้ notifier เพื่อสลับโหมด UI
-                        ref.read(authProvider.notifier).toggleMode();
-                      },
-                      child: Text(
-                        isLogin ? l10n('no_account') : l10n('has_account'),
-                        style: const TextStyle(
-                          color: AppColors.cream, 
-                          fontSize: 15,
-                          decoration: TextDecoration.underline, // เพิ่มขีดเส้นใต้เพื่อให้รู้ว่ากดได้
+
+                    // Divider OR
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: AppColors.mahogany.withOpacity(0.1),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              translations['or_divider'] ?? 'หรือ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.caramel.withOpacity(0.45),
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: AppColors.mahogany.withOpacity(0.1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Toggle Mode Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.mahogany,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          side: BorderSide(
+                            color: AppColors.mahogany.withOpacity(0.2),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () => ref.read(authProvider.notifier).toggleMode(),
+                        child: Text(
+                          isLogin
+                              ? translations['no_account'] ?? ''
+                              : translations['has_account'] ?? '',
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ),
@@ -146,31 +245,78 @@ class AuthScreen extends ConsumerWidget {
   }
 }
 
-// Widget สำหรับช่องกรอกข้อมูลแบบ Glass
-class _GlassTextField extends StatelessWidget {
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  const _FieldLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 9,
+          letterSpacing: 3,
+          color: AppColors.sienna,
+        ),
+      ),
+    );
+  }
+}
+
+class _FormField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final bool isPassword;
 
-  const _GlassTextField({required this.hint, required this.icon, this.isPassword = false});
+  const _FormField({
+    required this.hint,
+    required this.icon,
+    this.isPassword = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2), // ปรับให้มืดลงเล็กน้อยเพื่อให้พิมพ์เห็นชัด
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: AppColors.mahogany.withOpacity(0.12),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: TextField(
         obscureText: isPassword,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(
+          fontSize: 13,
+          color: AppColors.espresso,
+        ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-          prefixIcon: Icon(icon, color: AppColors.gold.withOpacity(0.7)),
+          hintStyle: TextStyle(
+            color: Colors.grey.withOpacity(0.5),
+            fontSize: 13,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: AppColors.gold.withOpacity(0.7),
+            size: 20,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 12,
+          ),
         ),
       ),
     );

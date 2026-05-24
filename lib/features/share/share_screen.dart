@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/l10n_provider.dart';
 import '../places/places_provider.dart';
 import 'widgets/grid_collage_widget.dart';
 
@@ -11,6 +12,7 @@ class ShareScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // ในการใช้งานจริง จะกรองเอาเฉพาะ Place ที่สถานะเป็น Done
     final places = ref.watch(placesProvider);
+    final translations = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.ink,
@@ -18,9 +20,9 @@ class ShareScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.gold),
-        title: const Text(
-          'ความทรงจำริมน้ำจันทบูร',
-          style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold),
+        title: Text(
+          translations['share_title'] ?? 'ความทรงจำริมน้ำจันทบูร',
+          style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -34,9 +36,9 @@ class ShareScreen extends ConsumerWidget {
             const SizedBox(height: 48),
             
             // Share Panel
-            const Text(
-              'แชร์ไปยัง',
-              style: TextStyle(fontSize: 18, color: AppColors.cream, fontWeight: FontWeight.bold),
+            Text(
+              translations['share_to'] ?? 'แชร์ไปยัง',
+              style: const TextStyle(fontSize: 18, color: AppColors.cream, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             
@@ -63,12 +65,12 @@ class ShareScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.save_alt_rounded),
-                label: const Text('บันทึกลงเครื่อง', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                label: Text(translations['share_save'] ?? 'บันทึกลงเครื่อง', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 onPressed: () {
                   // TODO: Save to Gallery logic
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('บันทึกรูปภาพสำเร็จ', style: TextStyle(color: AppColors.ink)),
+                    SnackBar(
+                      content: Text(translations['share_save_success'] ?? 'บันทึกรูปภาพสำเร็จ', style: const TextStyle(color: AppColors.ink)),
                       backgroundColor: AppColors.gold,
                     ),
                   );

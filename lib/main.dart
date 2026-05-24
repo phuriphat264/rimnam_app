@@ -52,14 +52,14 @@ class RimnamApp extends StatelessWidget {
           brightness: Brightness.dark, // คุมโทนแอปให้เป็น Dark Mode เสมอ
           primary: AppColors.gold,
           secondary: AppColors.amber,
-          background: AppColors.ink,
+          surface: AppColors.ink,
         ),
         
         useMaterial3: true,
       ),
       
       // เริ่มต้น Flow ด้วยหน้าเลือกภาษา
-      home: const LanguageScreen(),
+      home: const LanguageScreenPremium(),
     );
   }
 }
