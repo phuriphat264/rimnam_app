@@ -1,3 +1,8 @@
+# Environment / secrets
+dart_defines.json
+run.bat
+.vscode/launch.json
+
 # Miscellaneous
 *.class
 *.log

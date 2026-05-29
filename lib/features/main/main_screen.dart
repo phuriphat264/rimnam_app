@@ -56,12 +56,12 @@ class MainScreen extends ConsumerWidget {
                   )
                 ],
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  const _NavItem(index: 0, icon: Icons.home_rounded, label: 'หน้าแรก'),
-                  const _NavItem(index: 1, icon: Icons.map_rounded, label: 'แผนที่'),
-                  const _NavItem(index: 2, icon: Icons.person_rounded, label: 'โปรไฟล์'),
+                  _NavItem(index: 0, icon: Icons.home_rounded, label: 'หน้าแรก'),
+                  _NavItem(index: 1, icon: Icons.map_rounded, label: 'แผนที่'),
+                  _NavItem(index: 2, icon: Icons.person_rounded, label: 'โปรไฟล์'),
                 ],
               ),
             ),

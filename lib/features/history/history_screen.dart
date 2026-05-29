@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
-import '../../core/widgets/city_illustration.dart';
-import '../main/main_screen.dart';
 import '../rules/rules_screen.dart'; // เพิ่ม import
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -108,9 +106,9 @@ class HistoryScreen extends ConsumerWidget {
                             color: AppColors.gold.withOpacity(0.4),
                           ),
                         ),
-                        child: const Text(
-                          '📍 จันทบุรี · 300 ปีประวัติศาสตร์',
-                          style: TextStyle(
+                        child: Text(
+                          translations['history_tag'] ?? '',
+                          style: const TextStyle(
                             fontSize: 9,
                             letterSpacing: 1,
                             color: AppColors.amber,
@@ -119,9 +117,9 @@ class HistoryScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       // Title
-                      const Text(
-                        'ชุมชนริมน้ำจันทบูร\nเมืองเก่าแห่งลุ่มน้ำ',
-                        style: TextStyle(
+                      Text(
+                        translations['history_title'] ?? '',
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -164,9 +162,9 @@ class HistoryScreen extends ConsumerWidget {
                     ),
 
                     // Section head
-                    const Text(
-                      '✦ ประวัติและความเป็นมา',
-                      style: TextStyle(
+                    Text(
+                      translations['history_section_title'] ?? '',
+                      style: const TextStyle(
                         fontSize: 9,
                         letterSpacing: 4,
                         color: AppColors.caramel,
@@ -177,21 +175,21 @@ class HistoryScreen extends ConsumerWidget {
                     // Body text
                     RichText(
                       text: TextSpan(
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           height: 2,
                           color: AppColors.mahogany,
                         ),
-                        children: const [
+                        children: [
                           TextSpan(
-                            text: 'ชุมชนริมน้ำจันทบูรเป็นย่านการค้าเก่าแก่อายุกว่า ',
+                            text: translations['history_desc_part1'] ?? '',
                           ),
                           TextSpan(
-                            text: '300 ปี',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            text: translations['history_desc_bold'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           TextSpan(
-                            text: ' ตั้งอยู่ริมฝั่งแม่น้ำจันทบุรี ผสมผสานวัฒนธรรมไทย จีน และเวียดนามอย่างลงตัว',
+                            text: translations['history_desc_part2'] ?? '',
                           ),
                         ],
                       ),
@@ -201,11 +199,11 @@ class HistoryScreen extends ConsumerWidget {
                     // Stat Row
                     Row(
                       children: [
-                        _StatCard(number: '300+', label: 'ปีประวัติศาสตร์'),
+                        _StatCard(number: '300+', label: translations['stat_years'] ?? ''),
                         const SizedBox(width: 8),
-                        _StatCard(number: '6', label: 'จุดท่องเที่ยว'),
+                        _StatCard(number: '6', label: translations['stat_spots'] ?? ''),
                         const SizedBox(width: 8),
-                        _StatCard(number: '3', label: 'วัฒนธรรม'),
+                        _StatCard(number: '3', label: translations['stat_cultures'] ?? ''),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -232,19 +230,19 @@ class HistoryScreen extends ConsumerWidget {
                             ),
                           );
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'เริ่มสำรวจสถานที่',
-                              style: TextStyle(
+                              translations['start_explore'] ?? '',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 2,
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 16),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward, size: 16),
                           ],
                         ),
                       ),

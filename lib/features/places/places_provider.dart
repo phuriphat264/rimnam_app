@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// แก้ไขบรรทัดนี้ เอาตัว s ออกให้ตรงกับชื่อไฟล์ของคุณ
-import 'place_model.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'place_model.dart';
+import '../../core/storage/storage_service.dart';
 
-// Provider หลัก
 final placesProvider = StateNotifierProvider<PlacesNotifier, List<Place>>((ref) {
-  return PlacesNotifier();
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return PlacesNotifier(prefs);
 });
 
-// Provider สำหรับดึงข้อมูลรายตัว
 final placeByIdProvider = Provider.family<Place?, String>((ref, placeId) {
   final places = ref.watch(placesProvider);
   try {
@@ -17,31 +17,46 @@ final placeByIdProvider = Provider.family<Place?, String>((ref, placeId) {
   }
 });
 
-// Provider สำหรับนับจำนวนความสำเร็จ
 final completedCountProvider = Provider<int>((ref) {
   final places = ref.watch(placesProvider);
   return places.where((p) => p.status == PlaceStatus.done).length;
 });
 
-// Notifier ควบคุม Logic
 class PlacesNotifier extends StateNotifier<List<Place>> {
-  // ดึง mockPlaces จาก place_model.dart มาเป็นค่าเริ่มต้น
-  PlacesNotifier() : super(mockPlaces);
+  final SharedPreferences _prefs;
+  static const _completedKey = 'completed_places';
+
+  PlacesNotifier(this._prefs) : super(_buildInitialState(_prefs));
+
+  static List<Place> _buildInitialState(SharedPreferences prefs) {
+    final completedIds = prefs.getStringList(_completedKey) ?? [];
+    return mockPlaces.map((p) {
+      if (completedIds.contains(p.id)) {
+        return p.copyWith(status: PlaceStatus.done);
+      }
+      return p;
+    }).toList();
+  }
 
   void completeMission(String id) {
     final index = state.indexWhere((p) => p.id == id);
     if (index != -1) {
       final newList = List<Place>.from(state);
-      
+
       newList[index] = newList[index].copyWith(status: PlaceStatus.done);
-      
+
       if (index + 1 < newList.length) {
         if (newList[index + 1].status == PlaceStatus.locked) {
           newList[index + 1] = newList[index + 1].copyWith(status: PlaceStatus.active);
         }
       }
-      
+
       state = newList;
+      final completedIds = state
+          .where((p) => p.status == PlaceStatus.done)
+          .map((p) => p.id)
+          .toList();
+      _prefs.setStringList(_completedKey, completedIds);
     }
   }
 
@@ -50,5 +65,6 @@ class PlacesNotifier extends StateNotifier<List<Place>> {
       for (int i = 0; i < state.length; i++)
         state[i].copyWith(status: i == 0 ? PlaceStatus.active : PlaceStatus.locked)
     ];
+    _prefs.remove(_completedKey);
   }
 }

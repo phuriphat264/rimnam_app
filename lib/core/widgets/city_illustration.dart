@@ -35,18 +35,18 @@ class CityIllustration extends StatelessWidget {
           ),
 
           // Stars
-          Positioned(top: 16, left: 30, child: _Star(size: 2)),
-          Positioned(top: 24, left: 70, child: _Star(size: 1.5)),
-          Positioned(top: 20, right: 40, child: _Star(size: 2)),
-          Positioned(top: 32, right: 80, child: _Star(size: 1)),
+          const Positioned(top: 16, left: 30, child: _Star(size: 2)),
+          const Positioned(top: 24, left: 70, child: _Star(size: 1.5)),
+          const Positioned(top: 20, right: 40, child: _Star(size: 2)),
+          const Positioned(top: 32, right: 80, child: _Star(size: 1)),
 
           // Buildings
           Positioned(bottom: 30, left: 20, child: _Building(width: 35, height: 60, windows: 4, color: AppColors.mahogany.withOpacity(0.8))),
-          Positioned(bottom: 25, left: 60, child: _Building(width: 32, height: 70, windows: 6, color: AppColors.mahogany)),
+          const Positioned(bottom: 25, left: 60, child: _Building(width: 32, height: 70, windows: 6, color: AppColors.mahogany)),
           Positioned(bottom: 20, left: 98, child: _Building(width: 35, height: 75, windows: 6, color: AppColors.mahogany.withOpacity(0.9))),
           Positioned(bottom: 15, left: 138, child: _Building(width: 32, height: 85, windows: 8, color: AppColors.mahogany.withOpacity(0.85))),
           Positioned(bottom: 25, left: 175, child: _Building(width: 35, height: 70, windows: 6, color: AppColors.mahogany.withOpacity(0.8))),
-          Positioned(bottom: 30, left: 215, child: _Building(width: 32, height: 60, windows: 4, color: AppColors.mahogany)),
+          const Positioned(bottom: 30, left: 215, child: _Building(width: 32, height: 60, windows: 4, color: AppColors.mahogany)),
 
           // Moon
           Positioned(

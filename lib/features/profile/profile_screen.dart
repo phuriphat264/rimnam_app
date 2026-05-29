@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/l10n_provider.dart';
 import '../places/places_provider.dart';
-import '../places/place_model.dart';
 // import 'share_screen.dart'; // เปิดคอมเมนต์ถ้าต้องการให้กดที่เหรียญแล้วไปหน้าแชร์
 
 class ProfileScreen extends ConsumerWidget {
@@ -14,12 +14,14 @@ class ProfileScreen extends ConsumerWidget {
     final completedCount = ref.watch(completedCountProvider);
     final totalPlaces = ref.watch(placesProvider).length;
     final isAllDone = completedCount == totalPlaces;
+    final translations = ref.watch(translationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.ink, // พื้นหลังสีน้ำตาลเข้ม
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'PROFILES',
           style: TextStyle(
@@ -71,9 +73,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'นักสำรวจนิรนาม',
-              style: TextStyle(
+            Text(
+              translations['profile_name'] ?? 'นักสำรวจนิรนาม',
+              style: const TextStyle(
                 fontFamily: 'Noto Serif Thai',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -99,13 +101,13 @@ class ProfileScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   _StatBox(
-                    title: 'สถานที่ที่ไปแล้ว',
+                    title: translations['profile_places_visited'] ?? 'สถานที่ที่ไปแล้ว',
                     value: '$completedCount',
                     icon: Icons.location_on,
                   ),
                   const SizedBox(width: 16),
-                  const _StatBox(
-                    title: 'ภารกิจทั้งหมด',
+                  _StatBox(
+                    title: translations['profile_total_missions'] ?? 'ภารกิจทั้งหมด',
                     value: '1',
                     icon: Icons.flag,
                   ),
@@ -122,9 +124,9 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'สมุดสะสมตราประทับ',
-                    style: TextStyle(
+                  Text(
+                    translations['profile_stamp_book'] ?? 'สมุดสะสมตราประทับ',
+                    style: const TextStyle(
                       fontFamily: 'Noto Serif Thai',
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -175,7 +177,7 @@ class ProfileScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'ภารกิจชุมชนริมน้ำจันทบูร',
+                                  translations['profile_mission_name'] ?? 'ภารกิจชุมชนริมน้ำจันทบูร',
                                   style: TextStyle(
                                     fontFamily: 'Noto Serif Thai',
                                     fontSize: 14,
@@ -185,7 +187,7 @@ class ProfileScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  isAllDone ? 'สำเร็จเมื่อ: วันนี้' : 'ความคืบหน้า: $completedCount/$totalPlaces',
+                                  isAllDone ? (translations['profile_completed_today'] ?? 'สำเร็จเมื่อ: วันนี้') : '${translations['profile_progress'] ?? 'ความคืบหน้า: '}$completedCount/$totalPlaces',
                                   style: TextStyle(
                                     fontFamily: 'Noto Serif Thai',
                                     fontSize: 12,
@@ -213,15 +215,15 @@ class ProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  _SettingsMenu(icon: Icons.person_outline, title: 'แก้ไขข้อมูลส่วนตัว', onTap: () {}),
-                  _SettingsMenu(icon: Icons.notifications_none, title: 'การแจ้งเตือน', onTap: () {}),
-                  _SettingsMenu(icon: Icons.help_outline, title: 'ศูนย์ช่วยเหลือ', onTap: () {}),
+                  _SettingsMenu(icon: Icons.person_outline, title: translations['profile_edit'] ?? 'แก้ไขข้อมูลส่วนตัว', onTap: () {}),
+                  _SettingsMenu(icon: Icons.notifications_none, title: translations['profile_notifications'] ?? 'การแจ้งเตือน', onTap: () {}),
+                  _SettingsMenu(icon: Icons.help_outline, title: translations['profile_help'] ?? 'ศูนย์ช่วยเหลือ', onTap: () {}),
                   const Divider(color: Colors.white10, height: 32),
-                  _SettingsMenu(icon: Icons.logout, title: 'ออกจากระบบ', isDestructive: true, onTap: () {}),
+                  _SettingsMenu(icon: Icons.logout, title: translations['profile_logout'] ?? 'ออกจากระบบ', isDestructive: true, onTap: () {}),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 110),
           ],
         ),
       ),

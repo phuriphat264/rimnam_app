@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/l10n_provider.dart';
 import '../places/places_provider.dart';
 import '../places/place_detail_screen.dart';
 import 'dart:ui';
@@ -150,6 +151,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final places = ref.watch(placesProvider);
+    final translations = ref.watch(translationsProvider);
     final doneCount = places.where((p) => p.status == PlaceStatus.done).length;
 
     return Scaffold(
@@ -187,9 +189,9 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'ภารกิจสำรวจ\nชุมชนริมน้ำ',
-                          style: TextStyle(
+                        Text(
+                          translations['home_mission_title'] ?? 'ภารกิจสำรวจ\nชุมชนริมน้ำ',
+                          style: const TextStyle(
                             fontFamily: 'Noto Serif Thai',
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -269,7 +271,7 @@ class HomeScreen extends ConsumerWidget {
 // ==========================================
 // PLACE CARD WIDGET
 // ==========================================
-class _PremiumPlaceCard extends StatelessWidget {
+class _PremiumPlaceCard extends ConsumerWidget {
   final Place place;
   final int index;
 
@@ -279,7 +281,8 @@ class _PremiumPlaceCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final translations = ref.watch(translationsProvider);
     final isDone = place.status == PlaceStatus.done;
 
     return GestureDetector(
@@ -373,7 +376,7 @@ class _PremiumPlaceCard extends StatelessWidget {
 
                     // Place Name
                     Text(
-                      place.name,
+                      translations['place_${place.id}_name'] ?? place.name,
                       style: const TextStyle(
                         fontFamily: 'Noto Serif Thai',
                         fontSize: 16,
@@ -387,7 +390,7 @@ class _PremiumPlaceCard extends StatelessWidget {
 
                     // Subtitle
                     Text(
-                      place.description ?? 'แตะเพื่อดูรายละเอียด',
+                      translations['place_${place.id}_desc'] ?? (place.description ?? (translations['tap_to_view'] ?? 'แตะเพื่อดูรายละเอียด')),
                       style: TextStyle(
                         fontFamily: 'Noto Serif Thai',
                         fontSize: 11,

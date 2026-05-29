@@ -29,7 +29,7 @@ class AppColors {
   static Color glassBorder = Colors.white.withOpacity(0.15);
 
   // Gradient
-  static LinearGradient goldGradient = LinearGradient(
+  static LinearGradient goldGradient = const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [gold, honey],

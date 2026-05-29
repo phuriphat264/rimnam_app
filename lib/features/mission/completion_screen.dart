@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/localization/l10n_provider.dart';
 import '../share/share_screen.dart'; // <--- อย่าลืมเช็ค Path ตรงนี้ให้ดึงไฟล์ ShareScreen มาให้ถูกต้องนะครับ
 
-class CompletionScreen extends StatefulWidget {
+class CompletionScreen extends ConsumerStatefulWidget {
   const CompletionScreen({super.key});
 
   @override
-  State<CompletionScreen> createState() => _CompletionScreenState();
+  ConsumerState<CompletionScreen> createState() => _CompletionScreenState();
 }
 
-class _CompletionScreenState extends State<CompletionScreen> with SingleTickerProviderStateMixin {
+class _CompletionScreenState extends ConsumerState<CompletionScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -29,6 +31,7 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final translations = ref.watch(translationsProvider);
     return Scaffold(
       backgroundColor: AppColors.ink, // ใช้ AppColors.ink เป็นพื้นหลัง
       body: Stack(
@@ -122,9 +125,9 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                     child: Column(
                       children: [
                         // ข้อความแสดงความยินดี
-                        const Text(
-                          'ภารกิจสำเร็จ!',
-                          style: TextStyle(
+                        Text(
+                          translations['completion_title'] ?? 'ภารกิจสำเร็จ!',
+                          style: const TextStyle(
                             fontFamily: 'Noto Serif Thai',
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -134,7 +137,7 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'สำรวจครบทั้ง 6 สถานที่แล้ว\nชุมชนริมน้ำจันทบูร',
+                          translations['completion_desc'] ?? 'สำรวจครบทั้ง 6 สถานที่แล้ว\nชุมชนริมน้ำจันทบูร',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'Noto Serif Thai',
@@ -222,7 +225,7 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                                         Icon(Icons.storefront, color: AppColors.gold.withOpacity(0.8), size: 16),
                                         const SizedBox(width: 6),
                                         Text(
-                                          'รับของรางวัลที่',
+                                          translations['completion_reward_at'] ?? 'รับของรางวัลที่',
                                           style: TextStyle(
                                             fontFamily: 'Noto Serif Thai',
                                             fontSize: 12,
@@ -233,9 +236,9 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                                       ],
                                     ),
                                     const SizedBox(height: 8),
-                                    const Text(
-                                      'ศูนย์การเรียนรู้\nชุมชนริมน้ำจันทบูร',
-                                      style: TextStyle(
+                                    Text(
+                                      translations['completion_reward_place'] ?? 'ศูนย์การเรียนรู้\nชุมชนริมน้ำจันทบูร',
+                                      style: const TextStyle(
                                         fontFamily: 'Noto Serif Thai',
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -248,12 +251,14 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                                       children: [
                                         const Icon(Icons.location_on, color: AppColors.sienna, size: 14),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          'จันทบุรี - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
-                                          style: TextStyle(
-                                            fontFamily: 'Noto Serif Thai',
-                                            fontSize: 11,
-                                            color: Colors.white.withOpacity(0.5),
+                                        Expanded(
+                                          child: Text(
+                                            translations['completion_reward_note'] ?? 'จันทบุรี - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
+                                            style: TextStyle(
+                                              fontFamily: 'Noto Serif Thai',
+                                              fontSize: 11,
+                                              color: Colors.white.withOpacity(0.5),
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -310,20 +315,20 @@ class _CompletionScreenState extends State<CompletionScreen> with SingleTickerPr
                                 // กดแล้วเด้งกลับหน้าแรกสุด
                                 Navigator.popUntil(context, (route) => route.isFirst); 
                               },
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'ดูเส้นทาง',
-                                    style: TextStyle(
+                                    translations['completion_route'] ?? 'ดูเส้นทาง',
+                                    style: const TextStyle(
                                       fontFamily: 'Noto Serif Thai',
                                       color: AppColors.ink,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_right_alt, color: AppColors.ink),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_right_alt, color: AppColors.ink),
                                 ],
                               ),
                             ),

@@ -78,8 +78,8 @@ class AuthScreen extends ConsumerWidget {
                     const SizedBox(height: 3),
                     Text(
                       isLogin
-                          ? 'ยินดีต้อนรับกลับ'
-                          : 'สร้างบัญชีเพื่อเริ่มการเดินทาง',
+                          ? translations['login_subtitle'] ?? 'ยินดีต้อนรับกลับ'
+                          : translations['register_subtitle'] ?? 'สร้างบัญชีเพื่อเริ่มการเดินทาง',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.sienna,
@@ -112,9 +112,9 @@ class AuthScreen extends ConsumerWidget {
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                           ),
-                          child: const Text(
-                            'ลืมรหัสผ่าน?',
-                            style: TextStyle(
+                          child: Text(
+                            translations['forgot_password'] ?? 'ลืมรหัสผ่าน?',
+                            style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.caramel,
                             ),
@@ -194,7 +194,7 @@ class AuthScreen extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Text(
-                              'หรือ',
+                              translations['or_divider'] ?? 'หรือ',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.caramel.withOpacity(0.45),

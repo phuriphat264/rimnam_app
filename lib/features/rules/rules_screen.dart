@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/localization/l10n_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../main/main_screen.dart';
 
-class RulesScreen extends StatelessWidget {
+class RulesScreen extends ConsumerWidget {
   const RulesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final translations = ref.watch(translationsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.espresso,
       body: Column(
@@ -21,9 +25,9 @@ class RulesScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // Eyebrow
-                    const Text(
-                      '✦  MISSION RULES  ✦',
-                      style: TextStyle(
+                    Text(
+                      translations['rules_eyebrow'] ?? '',
+                      style: const TextStyle(
                         fontSize: 9,
                         letterSpacing: 5,
                         color: AppColors.honey,
@@ -31,9 +35,9 @@ class RulesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     // Title
-                    const Text(
-                      'กติกาการเล่น',
-                      style: TextStyle(
+                    Text(
+                      translations['rules_title'] ?? '',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w700,
                         color: AppColors.amber,
@@ -45,10 +49,10 @@ class RulesScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _FlowStep(emoji: '🗺️', label: 'ดู\nแผนที่', showArrow: true),
-                        _FlowStep(emoji: '📍', label: 'ไปถึง\nสถานที่', showArrow: true),
-                        _FlowStep(emoji: '📷', label: 'ถ่าย\nภาพ', showArrow: true),
-                        _FlowStep(emoji: '🏅', label: 'รับ\nรางวัล', showArrow: false),
+                        _FlowStep(emoji: '🗺️', label: translations['rule_step_1'] ?? '', showArrow: true),
+                        _FlowStep(emoji: '📍', label: translations['rule_step_2'] ?? '', showArrow: true),
+                        _FlowStep(emoji: '📷', label: translations['rule_step_3'] ?? '', showArrow: true),
+                        _FlowStep(emoji: '🏅', label: translations['rule_step_4'] ?? '', showArrow: false),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -88,28 +92,28 @@ class RulesScreen extends StatelessWidget {
                     // Rule Items
                     _RuleItem(
                       number: '1',
-                      text: 'ใช้ ',
-                      boldText: 'แผนที่',
-                      textSuffix: ' เพื่อนำทางไปยัง 6 จุด Check-in ในชุมชนริมน้ำจันทบูร',
+                      text: translations['rule_1_part1'] ?? '',
+                      boldText: translations['rule_1_bold'] ?? '',
+                      textSuffix: translations['rule_1_part2'] ?? '',
                     ),
                     _RuleItem(
                       number: '2',
-                      text: '',
-                      boldText: 'ถ่ายรูป',
-                      textSuffix: ' ณ สถานที่จริงทุกจุด เพื่อปลดล็อกจุดถัดไป — ต้องถ่ายให้เห็นสถานที่ชัดเจน',
+                      text: translations['rule_2_part1'] ?? '',
+                      boldText: translations['rule_2_bold'] ?? '',
+                      textSuffix: translations['rule_2_part2'] ?? '',
                     ),
                     _RuleItem(
                       number: '3',
-                      text: 'ต้องสำรวจให้',
-                      boldText: 'ครบ 6 จุด',
-                      textSuffix: ' จึงจะได้รับรางวัล ไม่สามารถข้ามได้',
+                      text: translations['rule_3_part1'] ?? '',
+                      boldText: translations['rule_3_bold'] ?? '',
+                      textSuffix: translations['rule_3_part2'] ?? '',
                       isLast: false,
                     ),
                     _RuleItem(
                       number: '4',
-                      text: 'เมื่อครบแล้ว รูปทั้ง 6 ใบจะ',
-                      boldText: 'รวมเป็นภาพเดียว',
-                      textSuffix: ' สามารถแชร์โซเชียลได้',
+                      text: translations['rule_4_part1'] ?? '',
+                      boldText: translations['rule_4_bold'] ?? '',
+                      textSuffix: translations['rule_4_part2'] ?? '',
                       isLast: true,
                     ),
 
@@ -138,21 +142,21 @@ class RulesScreen extends StatelessWidget {
                           Expanded(
                             child: RichText(
                               text: TextSpan(
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 11,
                                   height: 1.75,
                                   color: AppColors.sienna,
                                 ),
-                                children: const [
+                                children: [
                                   TextSpan(
-                                    text: 'รับรางวัล',
-                                    style: TextStyle(
+                                    text: translations['reward_hint_bold'] ?? '',
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.mahogany,
                                     ),
                                   ),
                                   TextSpan(
-                                    text: ' ณ ศูนย์การเรียนรู้ชุมชนริมน้ำ\nนำหน้าจอภารกิจสำเร็จแสดงแก่เจ้าหน้าที่',
+                                    text: translations['reward_hint_text'] ?? '',
                                   ),
                                 ],
                               ),
@@ -186,19 +190,19 @@ class RulesScreen extends StatelessWidget {
                             ),
                           );
                         },
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'เริ่มภารกิจ!',
-                              style: TextStyle(
+                              translations['start_mission_btn'] ?? '',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 2,
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 16),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward, size: 16),
                           ],
                         ),
                       ),

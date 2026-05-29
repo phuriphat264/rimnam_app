@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/l10n_provider.dart';
 import '../../places/place_model.dart';
 
-class PlaceCardWidget extends StatefulWidget {
+class PlaceCardWidget extends ConsumerStatefulWidget {
   final Place place;
   final VoidCallback onTap;
 
@@ -14,14 +16,15 @@ class PlaceCardWidget extends StatefulWidget {
   });
 
   @override
-  State<PlaceCardWidget> createState() => _PlaceCardWidgetState();
+  ConsumerState<PlaceCardWidget> createState() => _PlaceCardWidgetState();
 }
 
-class _PlaceCardWidgetState extends State<PlaceCardWidget> {
+class _PlaceCardWidgetState extends ConsumerState<PlaceCardWidget> {
   bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
+    final translations = ref.watch(translationsProvider);
     final isLocked = widget.place.status == PlaceStatus.locked;
     final isDone = widget.place.status == PlaceStatus.done;
 
@@ -86,7 +89,7 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            widget.place.name,
+                            translations['place_${widget.place.id}_name'] ?? widget.place.name,
                             style: TextStyle(
                               color: isLocked ? AppColors.cream.withOpacity(0.5) : AppColors.gold,
                               fontSize: 18,
@@ -97,7 +100,7 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            widget.place.description,
+                            translations['place_${widget.place.id}_desc'] ?? widget.place.description,
                             style: TextStyle(
                               color: isLocked ? AppColors.cream.withOpacity(0.3) : AppColors.cream.withOpacity(0.8),
                               fontSize: 13,
