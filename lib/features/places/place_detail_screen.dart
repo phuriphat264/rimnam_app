@@ -354,17 +354,23 @@ class PlaceDetailScreen extends ConsumerWidget {
                   // ======== ปุ่มถ่ายภาพ ========
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        elevation: 0, // ปรับให้ elevation เป็น 0 ตรงนี้แทนการใช้ copyWith
-                        shape: RoundedRectangleBorder(
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1C0E04), Color(0xFF4A2010)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                      onPressed: () async {
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          splashColor: AppColors.amber.withOpacity(0.15),
+                          highlightColor: AppColors.amber.withOpacity(0.08),
+                          onTap: () async {
                         if (isDone) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -513,38 +519,30 @@ class PlaceDetailScreen extends ConsumerWidget {
                           ),
                         );
                       },
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1C0E04), Color(0xFF4A2010)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isDone ? Icons.check_circle : Icons.camera_alt,
-                                color: AppColors.amber,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                isDone ? (translations['mission_done'] ?? 'ภารกิจเสร็จสิ้น') : (translations['take_photo'] ?? 'ถ่ายภาพ ณ สถานที่นี้'),
-                                style: const TextStyle(
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isDone ? Icons.check_circle : Icons.camera_alt,
                                   color: AppColors.amber,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Noto Serif Thai',
-                                  letterSpacing: 1.5,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 10),
+                                Text(
+                                  isDone ? (translations['mission_done'] ?? 'ภารกิจเสร็จสิ้น') : (translations['take_photo'] ?? 'ถ่ายภาพ ณ สถานที่นี้'),
+                                  style: const TextStyle(
+                                    color: AppColors.amber,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Noto Serif Thai',
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
