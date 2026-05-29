@@ -38,10 +38,8 @@ class PlaceDetailScreen extends ConsumerWidget {
               fit: StackFit.expand,
               children: [
                 // รูปภาพเฉพาะของแต่ละสถานที่
-                Image.network(
-                  place.imageUrl.isNotEmpty
-                      ? place.imageUrl
-                      : 'https://images.unsplash.com/photo-1548013146-72479768bbaa?q=80&w=800&auto=format&fit=crop',
+                Image.asset(
+                  place.imageUrl.isNotEmpty ? place.imageUrl : 'assets/images/1.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(

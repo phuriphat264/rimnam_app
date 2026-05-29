@@ -65,7 +65,7 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                       children: [
                         Hero(
                           tag: 'place_image_${widget.place.id}',
-                          child: Image.network(
+                          child: Image.asset(
                             widget.place.imageUrl,
                             fit: BoxFit.cover,
                             color: isLocked ? Colors.grey : null,
@@ -331,7 +331,7 @@ class _PremiumPlaceCard extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
+                  Image.asset(
                     place.imageUrl,
                     fit: BoxFit.cover,
                   ),

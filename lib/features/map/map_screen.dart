@@ -78,7 +78,7 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                       children: [
                         Hero(
                           tag: 'place_image_${widget.place.id}',
-                          child: Image.network(
+                          child: Image.asset(
                             widget.place.imageUrl,
                             fit: BoxFit.cover,
                             color: isLocked ? Colors.grey : null,
@@ -1055,7 +1055,7 @@ class _MapBottomCard extends ConsumerWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
+                      child: Image.asset(
                         place.imageUrl,
                         width: 66,
                         height: 66,
