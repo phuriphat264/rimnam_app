@@ -64,12 +64,35 @@ class _PlaceCardWidgetState extends ConsumerState<PlaceCardWidget> {
                       children: [
                         Hero(
                           tag: 'place_image_${widget.place.id}',
-                          child: Image.network(
-                            widget.place.imageUrl,
-                            fit: BoxFit.cover,
-                            color: isLocked ? Colors.grey : null,
-                            colorBlendMode: isLocked ? BlendMode.saturation : null,
-                          ),
+                          child: widget.place.imageUrl.startsWith('http') 
+                            ? Image.network(
+                                widget.place.imageUrl,
+                                fit: BoxFit.cover,
+                                color: isLocked ? Colors.grey : null,
+                                colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[800],
+                                    child: const Center(
+                                      child: Icon(Icons.image_not_supported, color: Colors.white54, size: 30),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Image.asset(
+                                widget.place.imageUrl,
+                                fit: BoxFit.cover,
+                                color: isLocked ? Colors.grey : null,
+                                colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[800],
+                                    child: const Center(
+                                      child: Icon(Icons.image_not_supported, color: Colors.white54, size: 30),
+                                    ),
+                                  );
+                                },
+                              ),
                         ),
                         if (isLocked)
                           Container(

@@ -12,6 +12,7 @@ class Place {
   final String id;
   final String name;
   final String imageUrl;
+  final List<String> galleryImages;
   final String description;
   final String longDescription;
   final String hint;
@@ -23,6 +24,7 @@ class Place {
     required this.id,
     required this.name,
     required this.imageUrl,
+    this.galleryImages = const [], // เพิ่มรูปภาพแกลเลอรี
     required this.description,
     required this.longDescription,
     required this.hint,
@@ -36,6 +38,7 @@ class Place {
       id: id,
       name: name,
       imageUrl: imageUrl,
+      galleryImages: galleryImages,
       description: description,
       longDescription: longDescription,
       hint: hint,
@@ -52,7 +55,13 @@ final List<Place> mockPlaces = [
   const Place(
     id: '1',
     name: 'วัดโบสถ์เมือง',
-    imageUrl: 'https://images.unsplash.com/photo-1590518779032-15f532a74c74?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'assets/images/1.1.jpg',
+    galleryImages: [
+      'assets/images/1.jpg',
+      'assets/images/1.1.jpg',
+      'assets/images/1.2.jpg',
+      'assets/images/1.3.jpg',
+    ],
     description: 'วัดเก่าแก่คู่เมืองจันทบุรี โดดเด่นด้วยเจดีย์ศิลปะอยุธยาตอนปลาย',
     longDescription: '''วัดโบสถ์เมือง เป็นวัดราษฎร์เก่าแก่ใจกลางเมืองจันทบุรี ตั้งอยู่บนเนินสูงติดแม่น้ำจันทบุรี สันนิษฐานว่าสร้างขึ้นในสมัยอยุธยาตอนปลาย และได้รับการปฏิสังขรณ์เรื่อยมาจนเป็นศูนย์รวมจิตใจของชาวจันทบุรี
 
@@ -73,7 +82,13 @@ final List<Place> mockPlaces = [
   const Place(
     id: '2',
     name: 'บ้านหลวงราชไมตรี',
-    imageUrl: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'assets/images/2.jpg',
+    galleryImages: [
+      'assets/images/2.jpg',
+      'assets/images/2.1.jpg',
+      'assets/images/2.2.jpg',
+      'assets/images/2.3.jpg',
+    ],
     description: 'บ้านไม้สักทองอายุกว่า 150 ปี ของ "บิดาแห่งยางพาราตะวันออก"',
     longDescription: '''บ้านหลวงราชไมตรี (Historic Inn) เป็นบ้านพักประวัติศาสตร์อายุกว่า 150 ปี สร้างขึ้นเพื่อรวบรวมเรื่องราวของหลวงราชไมตรี "บิดาแห่งยางพาราภาคตะวันออก" ปัจจุบันได้รับการบูรณะเป็นที่พักเชิงอนุรักษ์
 
@@ -94,7 +109,13 @@ final List<Place> mockPlaces = [
   const Place(
     id: '3',
     name: 'ศาลเจ้าตั้วเล่าเอี๊ย',
-    imageUrl: 'https://images.unsplash.com/photo-1552594689-d46101c107e8?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'assets/images/3.jpg',
+    galleryImages: [
+      'assets/images/3.jpg',
+      'assets/images/3.1.jpg',
+      'assets/images/3.2.jpg',
+      'assets/images/3.3.jpg',
+    ],
     description: 'ศาลเจ้าจีนโบราณ ศูนย์รวมศรัทธาของชาวไทยเชื้อสายจีนริมน้ำ',
     longDescription: '''ศาลเจ้าตั้วเล่าเอี๊ย หรือที่ชาวบ้านเรียกว่า ศาลเจ้าพ่อเสือ เป็นศาสนสถานสถาปัตยกรรมแบบจีนตอนใต้ที่เก่าแก่ที่สุดแห่งหนึ่งในย่านชุมชนริมน้ำจันทบูร เป็นศูนย์รวมศรัทธาของชาวไทยเชื้อสายจีนในพื้นที่
 
@@ -115,7 +136,13 @@ final List<Place> mockPlaces = [
   const Place(
     id: '4',
     name: 'โรงเจเทียงเซ็งตึ้ง',
-    imageUrl: 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'assets/images/4.jpg',
+    galleryImages: [
+      'assets/images/4.jpg',
+      'assets/images/4.1.jpg',
+      'assets/images/4.2.jpg',
+      'assets/images/4.3.jpg',
+    ],
     description: 'โรงเจแห่งแรกของเมืองจันท์ ศูนย์กลางเทศกาลกินเจ',
     longDescription: '''โรงเจเทียงเซ็งตึ้ง เป็นสถานธรรมและโรงเจแห่งแรกของเมืองจันทบุรี สร้างขึ้นตั้งแต่สมัยรัชกาลที่ 5 โดดเด่นด้วยศิลปะจีนโบราณที่ยังคงอนุรักษ์ไว้อย่างสมบูรณ์แบบ
 
@@ -136,7 +163,13 @@ final List<Place> mockPlaces = [
   const Place(
     id: '5',
     name: 'อาสนวิหารพระนางมารีอาปฏิสนธินิรมล',
-    imageUrl: 'https://images.unsplash.com/photo-1548872116-fc04e4b2d1bc?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'assets/images/5.jpg',
+    galleryImages: [
+      'assets/images/5.jpg',
+      'assets/images/5.1.jpg',
+      'assets/images/5.2.jpg',
+      'assets/images/5.3.jpg',
+    ],
     description: 'โบสถ์คาทอลิกสไตล์โกธิกที่ใหญ่และสวยงามที่สุดในไทย',
     longDescription: '''อาสนวิหารพระนางมารีอาปฏิสนธินิรมล เป็นโบสถ์คาทอลิกสไตล์โกธิกที่สวยงามและใหญ่ที่สุดในประเทศไทย ถือเป็นแลนด์มาร์คสำคัญที่อยู่คู่ชุมชนจันทบูรมายาวนาน
 
@@ -157,8 +190,14 @@ final List<Place> mockPlaces = [
   const Place(
     id: '6',
     name: 'ศูนย์เรียนรู้ประจำชุมชนริมน้ำจันทบูร บ้านเลขที่ 69',
-    imageUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=800&auto=format&fit=crop',
-    description: 'พิพิธภัณฑ์มีชีวิต แหล่งรวบรวมความทรงจำของชาวจันทบูร',
+    imageUrl: 'assets/images/6.jpg',
+    galleryImages: [
+      'assets/images/6.jpg',
+      'assets/images/6.1.jpg',
+      'assets/images/6.2.jpg',
+      'assets/images/6.3.jpg',
+    ],
+    description: 'เรียนรู้ประวัติศาสตร์ชุมชนผ่านบ้านไม้โบราณที่ยังมีลมหายใจ',
     longDescription: '''ศูนย์เรียนรู้ประจำชุมชนริมน้ำจันทบูร (บ้านเลขที่ 69) เดิมเป็นบ้านของขุนอนุสรสมบัติ ปัจจุบันทำหน้าที่เป็นพิพิธภัณฑ์มีชีวิตที่บอกเล่าเรื่องราวความทรงจำของย่านการค้าเก่าแห่งนี้
 
 📜 ประวัติและความเป็นมา

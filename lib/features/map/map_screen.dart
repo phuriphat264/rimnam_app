@@ -75,13 +75,23 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                       children: [
                         Hero(
                           tag: 'place_image_${widget.place.id}',
-                          child: Image.network(
-                            widget.place.imageUrl,
-                            fit: BoxFit.cover,
-                            color: isLocked ? Colors.grey : null,
-                            colorBlendMode:
-                                isLocked ? BlendMode.saturation : null,
-                          ),
+                          child: widget.place.imageUrl.startsWith('http')
+                              ? Image.network(
+                                  widget.place.imageUrl,
+                                  fit: BoxFit.cover,
+                                  color: isLocked ? Colors.grey : null,
+                                  colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(color: AppColors.mahogany),
+                                )
+                              : Image.asset(
+                                  widget.place.imageUrl,
+                                  fit: BoxFit.cover,
+                                  color: isLocked ? Colors.grey : null,
+                                  colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(color: AppColors.mahogany),
+                                ),
                         ),
                         if (isLocked)
                           Container(
@@ -911,19 +921,33 @@ class _MapBottomCard extends ConsumerWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        place.imageUrl,
-                        width: 66,
-                        height: 66,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 66,
-                          height: 66,
-                          color: AppColors.mahogany,
-                          child: const Icon(Icons.image_not_supported,
-                              color: AppColors.cream),
-                        ),
-                      ),
+                      child: place.imageUrl.startsWith('http')
+                          ? Image.network(
+                              place.imageUrl,
+                              width: 66,
+                              height: 66,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 66,
+                                height: 66,
+                                color: AppColors.mahogany,
+                                child: const Icon(Icons.image_not_supported,
+                                    color: AppColors.cream),
+                              ),
+                            )
+                          : Image.asset(
+                              place.imageUrl,
+                              width: 66,
+                              height: 66,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 66,
+                                height: 66,
+                                color: AppColors.mahogany,
+                                child: const Icon(Icons.image_not_supported,
+                                    color: AppColors.cream),
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

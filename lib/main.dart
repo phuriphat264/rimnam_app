@@ -8,15 +8,15 @@ import 'core/storage/storage_service.dart';
 import 'features/language/language_screen.dart';
 
 void main() async {
-  // จำเป็นต้องเรียกใช้เมื่อมีการใช้ async ก่อน runApp (เช่น การโหลด SharedPreferences)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // โหลด SharedPreferences เตรียมไว้ตั้งแต่เริ่มแอป
+  // ปิดการโหลด SharedPreferences ชั่วคราว เพื่อทดสอบว่า Emulator ค้างที่ตรงนี้หรือไม่
+  // final prefs = await SharedPreferences.getInstance();
+  SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
     ProviderScope(
-      // นำ prefs ที่โหลดเสร็จแล้ว มาใส่ใน Provider เพื่อให้ทั้งแอปดึงไปใช้งานได้ทันที (Synchronous)
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],

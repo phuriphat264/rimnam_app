@@ -53,7 +53,9 @@ class GridCollageWidget extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(place.imageUrl, fit: BoxFit.cover),
+                  place.imageUrl.startsWith('http')
+                      ? Image.network(place.imageUrl, fit: BoxFit.cover)
+                      : Image.asset(place.imageUrl, fit: BoxFit.cover),
                   // Overlay Text (Watermark style)
                   Positioned(
                     bottom: 8,

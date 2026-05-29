@@ -65,12 +65,21 @@ class _PlaceCardWidgetState extends State<PlaceCardWidget> {
                       children: [
                         Hero(
                           tag: 'place_image_${widget.place.id}',
-                          child: Image.network(
-                            widget.place.imageUrl,
-                            fit: BoxFit.cover,
-                            color: isLocked ? Colors.grey : null,
-                            colorBlendMode: isLocked ? BlendMode.saturation : null,
-                          ),
+                          child: widget.place.imageUrl.startsWith('http')
+                              ? Image.network(
+                                  widget.place.imageUrl,
+                                  fit: BoxFit.cover,
+                                  color: isLocked ? Colors.grey : null,
+                                  colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                  errorBuilder: (context, error, stackTrace) => Container(color: AppColors.mahogany),
+                                )
+                              : Image.asset(
+                                  widget.place.imageUrl,
+                                  fit: BoxFit.cover,
+                                  color: isLocked ? Colors.grey : null,
+                                  colorBlendMode: isLocked ? BlendMode.saturation : null,
+                                  errorBuilder: (context, error, stackTrace) => Container(color: AppColors.mahogany),
+                                ),
                         ),
                         if (isLocked)
                           Container(
@@ -331,10 +340,21 @@ class _PremiumPlaceCard extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    place.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
+                  place.imageUrl.startsWith('http')
+                      ? Image.network(
+                          place.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (context, error, stackTrace) => Container(color: AppColors.espresso),
+                        )
+                      : Image.asset(
+                          place.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (context, error, stackTrace) => Container(color: AppColors.espresso),
+                        ),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
