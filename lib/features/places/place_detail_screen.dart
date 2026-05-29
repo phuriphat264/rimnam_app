@@ -6,6 +6,7 @@ import '../../core/localization/l10n_provider.dart';
 import '../places/places_provider.dart';
 import '../camera/camera_screen.dart';
 import '../places/place_model.dart';
+import '../map/map_provider.dart';
 class PlaceDetailScreen extends ConsumerWidget {
   final Place place;
   final int index;
@@ -365,7 +366,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (isDone) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -376,6 +377,55 @@ class PlaceDetailScreen extends ConsumerWidget {
                           return;
                         }
 
+                        // ===== ตรวจสอบระยะห่าง GPS ก่อนเปิดกล้อง =====
+                        final locationAsync = ref.read(userLocationProvider);
+                        final userPos = locationAsync.valueOrNull;
+
+                        if (userPos != null) {
+                          final dist = distanceToStation(userPos, place.id);
+                          if (dist != null && dist > 200) {
+                            // อยู่ไกลเกิน 200 เมตร — แสดง dialog เตือน
+                            if (!context.mounted) return;
+                            final goAnyway = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: AppColors.espresso,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: AppColors.gold.withOpacity(0.3)),
+                                ),
+                                title: const Text(
+                                  'ยังอยู่ไกลเกินไป',
+                                  style: TextStyle(
+                                    color: AppColors.gold,
+                                    fontFamily: 'Noto Serif Thai',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                content: Text(
+                                  'คุณอยู่ห่างจากสถานที่นี้ประมาณ ${formatDistance(dist)}\n\nกรุณาเดินทางไปยังสถานที่ก่อนถ่ายภาพ เพื่อให้ภารกิจถูกต้อง',
+                                  style: const TextStyle(
+                                    color: AppColors.cream,
+                                    fontFamily: 'Noto Serif Thai',
+                                    height: 1.6,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text(
+                                      'กลับไปดูแผนที่',
+                                      style: TextStyle(color: AppColors.gold, fontFamily: 'Noto Serif Thai'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (goAnyway != true) return;
+                          }
+                        }
+
+                        if (!context.mounted) return;
                         Navigator.push(
                           context,
                           MaterialPageRoute(

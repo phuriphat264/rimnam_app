@@ -82,6 +82,8 @@ class AppTranslations {
       'map_locked': '🔒 ล็อค',
       'map_distance_mock': '📍 ~150 เมตรจากคุณ',
       'map_open_maps': 'เปิด Google Maps...',
+      'map_nearest': 'ใกล้ที่สุด',
+      'map_my_location': 'ตำแหน่งฉัน',
 
       'completion_title': 'ภารกิจสำเร็จ!',
       'completion_desc': 'สำรวจครบทั้ง 6 สถานที่แล้ว\nชุมชนริมน้ำจันทบูร',
@@ -233,6 +235,8 @@ class AppTranslations {
       'map_locked': '🔒 锁定',
       'map_distance_mock': '📍 距离您约150米',
       'map_open_maps': '正在打开 Google Maps...',
+      'map_nearest': '最近地点',
+      'map_my_location': '我的位置',
 
       'completion_title': '任务完成！',
       'completion_desc': '成功探索尖竹汶河畔社区的\n所有6个地点',
@@ -384,6 +388,8 @@ class AppTranslations {
       'map_locked': '🔒 Locked',
       'map_distance_mock': '📍 ~150 meters away',
       'map_open_maps': 'Opening Google Maps...',
+      'map_nearest': 'Nearest',
+      'map_my_location': 'My Location',
 
       'completion_title': 'Mission Accomplished!',
       'completion_desc': 'Successfully explored all 6 spots in\nChanthabun Riverside Community',

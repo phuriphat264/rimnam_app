@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ต้องการตำแหน่งของคุณเพื่อแสดงบนแผนที่และคำนวณระยะทางถึงสถานที่ท่องเที่ยว</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>ต้องการตำแหน่งของคุณเพื่อแสดงบนแผนที่และคำนวณระยะทางถึงสถานที่ท่องเที่ยว</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ต้องการกล้องเพื่อถ่ายภาพสถานที่และยืนยันการทำภารกิจ</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>บันทึกภาพถ่ายภารกิจลงในคลังรูปภาพ</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
