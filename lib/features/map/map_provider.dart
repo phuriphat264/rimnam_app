@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'route_data.dart';
+
+const _orsApiKey = String.fromEnvironment(
+  'ORS_API_KEY',
+  defaultValue: 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImVlMzNiZTQyNTBiZjQwZTg4MDVkZDI2N2ZiMTg5MzllIiwiaCI6Im11cm11cjY0In0=',
+);
 
 // ============================================================
 // พิกัด GPS จริงของ 6 สถานที่ในชุมชนริมน้ำจันทบูร
@@ -61,7 +67,7 @@ final isNavigatingProvider = StateProvider<bool>((ref) => false);
 // ============================================================
 // สร้างข้อความนำทางภาษาไทยจาก OSRM maneuver
 // ============================================================
-String _buildThaiInstruction(
+String buildThaiInstruction(
     String type, String modifier, String streetName, double distance) {
   final distStr = distance < 1000
       ? '${distance.round()} ม.'
@@ -103,59 +109,59 @@ String _buildThaiInstruction(
 }
 
 // ============================================================
-// ดึงเส้นทาง + ขั้นตอนนำทางจาก OSRM
+// หาสถานีที่ใกล้ที่สุดจากตำแหน่งผู้ใช้ (ข้ามสถานีที่ระบุ)
 // ============================================================
-Future<RouteResult> fetchWalkingRoute(LatLng from, LatLng to) async {
-  try {
-    final uri = Uri.parse(
-      'https://router.project-osrm.org/route/v1/foot/'
-      '${from.longitude},${from.latitude};'
-      '${to.longitude},${to.latitude}'
-      '?overview=full&geometries=geojson&steps=true',
+String _nearestStationId(LatLng pos, {String? exclude}) {
+  String? nearest;
+  double? minDist;
+  for (final entry in stationCoordinates.entries) {
+    if (entry.key == exclude) continue;
+    final d = Geolocator.distanceBetween(
+      pos.latitude, pos.longitude,
+      entry.value.latitude, entry.value.longitude,
     );
-    final response = await http.get(uri).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) return RouteResult.empty;
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (data['code'] != 'Ok') return RouteResult.empty;
-
-    final routes = data['routes'] as List;
-    if (routes.isEmpty) return RouteResult.empty;
-
-    // เส้นทางรวม (polyline)
-    final coords = routes[0]['geometry']['coordinates'] as List;
-    final points = coords
-        .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
-        .toList();
-
-    // ขั้นตอนการนำทาง
-    final legs = routes[0]['legs'] as List;
-    final steps = <RouteStep>[];
-    for (final leg in legs) {
-      for (final step in leg['steps'] as List) {
-        final maneuver = step['maneuver'] as Map<String, dynamic>;
-        final type = maneuver['type'] as String? ?? '';
-        final modifier = maneuver['modifier'] as String? ?? 'straight';
-        final name = step['name'] as String? ?? '';
-        final distance = (step['distance'] as num).toDouble();
-        final loc = maneuver['location'] as List;
-        steps.add(RouteStep(
-          instruction: _buildThaiInstruction(type, modifier, name, distance),
-          type: type,
-          modifier: modifier,
-          distanceToNext: distance,
-          maneuverPoint: LatLng(
-            (loc[1] as num).toDouble(),
-            (loc[0] as num).toDouble(),
-          ),
-        ));
-      }
+    if (minDist == null || d < minDist) {
+      minDist = d;
+      nearest = entry.key;
     }
-
-    return RouteResult(points: points, steps: steps);
-  } catch (_) {
-    return RouteResult.empty;
   }
+  return nearest!;
+}
+
+// ============================================================
+// ดึงเส้นทาง pre-bundled จากตำแหน่งผู้ใช้ → สถานีเป้าหมาย
+// ============================================================
+RouteResult getBundledRouteFromPosition(LatLng userPos, String targetId) {
+  // ใช้ station ที่ใกล้ที่สุดที่ไม่ใช่ target เป็นจุดเริ่มของ route
+  final fromId = _nearestStationId(userPos, exclude: targetId);
+
+  final key = '${fromId}_$targetId';
+  final pts = bundledRoutePoints[key];
+  final stepData = bundledRouteSteps[key];
+  if (pts == null || stepData == null || pts.isEmpty) return RouteResult.empty;
+
+  final points = pts.map((p) => LatLng(p[0], p[1])).toList();
+  final steps = stepData.map((s) => RouteStep(
+    instruction: buildThaiInstruction(
+      s[0] as String, s[1] as String, s[2] as String, s[3] as double,
+    ),
+    type: s[0] as String,
+    modifier: s[1] as String,
+    distanceToNext: s[3] as double,
+    maneuverPoint: LatLng(s[4] as double, s[5] as double),
+  )).toList();
+
+  // ต่อเส้นตรงจากตำแหน่งผู้ใช้ถึงจุดเริ่มต้น route เสมอ
+  // (ส่วนนี้จะสั้นมากถ้า user อยู่ในพื้นที่)
+  final startCoord = stationCoordinates[fromId]!;
+  final distToStart = Geolocator.distanceBetween(
+    userPos.latitude, userPos.longitude,
+    startCoord.latitude, startCoord.longitude,
+  );
+  if (distToStart > 15) {
+    return RouteResult(points: [userPos, ...points], steps: steps);
+  }
+  return RouteResult(points: points, steps: steps);
 }
 
 // ============================================================
@@ -231,3 +237,115 @@ String formatDistance(double meters) {
   if (meters < 1000) return '${meters.round()} ม.';
   return '${(meters / 1000).toStringAsFixed(1)} กม.';
 }
+
+// ============================================================
+// OpenRouteService walking route
+// ============================================================
+Future<RouteResult> fetchOrsRoute(LatLng userPos, String targetId) async {
+  if (_orsApiKey.isEmpty) throw Exception('ORS_API_KEY not configured');
+
+  final target = stationCoordinates[targetId];
+  if (target == null) return RouteResult.empty;
+
+  final url = Uri.parse(
+    'https://api.openrouteservice.org/v2/directions/driving-car/geojson'
+    '?api_key=$_orsApiKey',
+  );
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': _orsApiKey,
+      'Content-Type': 'application/json; charset=utf-8',
+      'Accept': 'application/json, application/geo+json',
+    },
+    body: jsonEncode({
+      'coordinates': [
+        [userPos.longitude, userPos.latitude],
+        [target.longitude, target.latitude],
+      ],
+      'preference': 'recommended',
+      'instructions': true,
+      'units': 'm',
+      'options': {
+        'avoid_features': ['ferries', 'tollways'],
+      },
+    }),
+  ).timeout(const Duration(seconds: 10));
+  if (response.statusCode != 200) throw Exception('ORS ${response.statusCode}');
+
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  final features = data['features'] as List<dynamic>;
+  if (features.isEmpty) return RouteResult.empty;
+
+  final feature = features[0] as Map<String, dynamic>;
+
+  final coords = (feature['geometry']['coordinates'] as List<dynamic>)
+      .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+      .toList();
+
+  final segments =
+      (feature['properties']['segments'] as List<dynamic>);
+  final steps = <RouteStep>[];
+
+  for (final seg in segments) {
+    for (final step in seg['steps'] as List<dynamic>) {
+      final type = step['type'] as int;
+      final name = step['name'] as String? ?? '';
+      final dist = (step['distance'] as num).toDouble();
+      final wpStart = (step['way_points'] as List<dynamic>)[0] as int;
+      final pt = coords[wpStart.clamp(0, coords.length - 1)];
+
+      steps.add(RouteStep(
+        instruction: _orsInstruction(type, name, dist),
+        type: _orsType(type),
+        modifier: _orsModifier(type),
+        distanceToNext: dist,
+        maneuverPoint: pt,
+      ));
+    }
+  }
+
+  return RouteResult(points: coords, steps: steps);
+}
+
+String _orsInstruction(int type, String name, double dist) {
+  final d = dist < 1000
+      ? '${dist.round()} ม.'
+      : '${(dist / 1000).toStringAsFixed(1)} กม.';
+  final s = name.isNotEmpty ? ' บน $name' : '';
+  switch (type) {
+    case 0:  return 'เลี้ยวซ้าย$s อีก $d';
+    case 1:  return 'เลี้ยวขวา$s อีก $d';
+    case 2:  return 'เลี้ยวซ้ายชัด$s อีก $d';
+    case 3:  return 'เลี้ยวขวาชัด$s อีก $d';
+    case 4:  return 'เบี่ยงซ้าย$s อีก $d';
+    case 5:  return 'เบี่ยงขวา$s อีก $d';
+    case 6:  return 'ตรงไป$s อีก $d';
+    case 10: return 'ถึงจุดหมายแล้ว';
+    case 11: return 'ออกเดินทาง$s';
+    case 12: return 'เบี่ยงซ้าย$s อีก $d';
+    case 13: return 'เบี่ยงขวา$s อีก $d';
+    default: return 'ตรงไป$s อีก $d';
+  }
+}
+
+String _orsType(int type) {
+  if (type == 11) return 'depart';
+  if (type == 10) return 'arrive';
+  if (type == 6)  return 'continue';
+  return 'turn';
+}
+
+String _orsModifier(int type) {
+  switch (type) {
+    case 0: case 12: return 'left';
+    case 1: case 13: return 'right';
+    case 2:          return 'sharp left';
+    case 3:          return 'sharp right';
+    case 4:          return 'slight left';
+    case 5:          return 'slight right';
+    default:         return 'straight';
+  }
+}
+

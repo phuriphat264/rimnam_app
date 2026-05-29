@@ -1,11 +1,14 @@
+import 'dart:async' show StreamSubscription, unawaited;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../../core/storage/storage_service.dart';
 import '../places/places_provider.dart';
 import 'map_provider.dart';
 import '../places/place_model.dart';
@@ -172,6 +175,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final MapController _mapController = MapController();
   late final AnimationController _pulseController;
 
+  // FMTC tile provider — constructed once, reused every build
+  final _tileProvider = FMTCTileProvider(
+    stores: const {'chanthaburi': BrowseStoreStrategy.readUpdateCreate},
+  );
+
+  double? _downloadProgress; // null = ไม่มี / 0.0–1.0 = กำลัง download
+  StreamSubscription<DownloadProgress>? _downloadSub;
+
   @override
   void initState() {
     super.initState();
@@ -179,13 +190,54 @@ class _MapScreenState extends ConsumerState<MapScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+    _initTileCache();
   }
 
   @override
   void dispose() {
+    _downloadSub?.cancel();
     _mapController.dispose();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  // Download tiles สำหรับพื้นที่ชุมชนริมน้ำจันทบูร (ครั้งแรกเท่านั้น)
+  Future<void> _initTileCache() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool('tiles_downloaded') ?? false) return;
+
+    final downloadBounds = LatLngBounds(
+      const LatLng(12.602, 102.107),
+      const LatLng(12.620, 102.125),
+    );
+    final region = RectangleRegion(downloadBounds).toDownloadable(
+      minZoom: 14,
+      maxZoom: 18,
+      options: TileLayer(
+        urlTemplate: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        userAgentPackageName: 'com.rimnam.chanthabun',
+      ),
+    );
+
+    if (mounted) setState(() => _downloadProgress = 0.0);
+
+    final streams = FMTCStore('chanthaburi').download.startForeground(
+      region: region,
+      parallelThreads: 3,
+      skipExistingTiles: true,
+      skipSeaTiles: true,
+      rateLimit: 10,
+    );
+
+    _downloadSub = streams.downloadProgress.listen(
+      (p) {
+        if (mounted) setState(() => _downloadProgress = p.percentageProgress / 100);
+      },
+      onDone: () async {
+        await prefs.setBool('tiles_downloaded', true);
+        if (mounted) setState(() => _downloadProgress = null);
+      },
+    );
   }
 
   void _goToMyLocation() {
@@ -207,43 +259,71 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _mapController.move(_mapController.camera.center, (zoom - 1).clamp(13.0, 19.0));
   }
 
-  // ซูมให้เห็นทั้ง GPS ผู้ใช้ และจุดหมาย
-  void _fitRoute(LatLng destination) {
-    final userPos = ref.read(userLocationProvider).valueOrNull;
-    if (userPos != null) {
-      final userLatLng = LatLng(userPos.latitude, userPos.longitude);
-      try {
-        _mapController.fitCamera(
-          CameraFit.bounds(
-            bounds: LatLngBounds.fromPoints([userLatLng, destination]),
-            padding: const EdgeInsets.fromLTRB(60, 100, 60, 200),
-          ),
-        );
-      } catch (_) {
-        _mapController.move(destination, 16.0);
-      }
-    } else {
-      _mapController.move(destination, 16.0);
-    }
-  }
-
-  // โหลดเส้นทาง + ขั้นตอนจาก OSRM
-  Future<void> _loadRoute(LatLng from, LatLng to) async {
-    ref.read(routeLoadingProvider.notifier).state = true;
+  // โหลดเส้นทาง: ลอง ORS ก่อน (ตามถนนจริง) fallback → bundled
+  Future<void> _loadRoute(LatLng userPos, String targetStationId) async {
     ref.read(routePointsProvider.notifier).state = const [];
     ref.read(routeStepsProvider.notifier).state = const [];
     ref.read(activeStepIndexProvider.notifier).state = 0;
-    final result = await fetchWalkingRoute(from, to);
-    if (mounted) {
-      ref.read(routePointsProvider.notifier).state = result.points;
-      ref.read(routeStepsProvider.notifier).state = result.steps;
+    ref.read(routeLoadingProvider.notifier).state = true;
+
+    RouteResult? orsResult;
+    try {
+      orsResult = await fetchOrsRoute(userPos, targetStationId);
+    } catch (_) {
+      // silent — fallback to bundled route
+    }
+
+    if (!mounted) return;
+
+    if (orsResult != null && orsResult.points.length >= 2) {
+      ref.read(routePointsProvider.notifier).state = orsResult.points;
+      ref.read(routeStepsProvider.notifier).state = orsResult.steps;
       ref.read(routeLoadingProvider.notifier).state = false;
+      _fitRouteCamera([userPos, ...orsResult.points]);
+      return;
+    }
+
+    final fallback = getBundledRouteFromPosition(userPos, targetStationId);
+    ref.read(routePointsProvider.notifier).state = fallback.points;
+    ref.read(routeStepsProvider.notifier).state = fallback.steps;
+    ref.read(routeLoadingProvider.notifier).state = false;
+    if (fallback.points.length >= 2) {
+      _fitRouteCamera([userPos, ...fallback.points]);
     }
   }
 
+  void _fitRouteCamera(List<LatLng> allPoints) {
+    if (allPoints.isEmpty) return;
+    var minLat = allPoints.first.latitude;
+    var maxLat = allPoints.first.latitude;
+    var minLng = allPoints.first.longitude;
+    var maxLng = allPoints.first.longitude;
+    for (final p in allPoints.skip(1)) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds(
+          LatLng(minLat, minLng),
+          LatLng(maxLat, maxLng),
+        ),
+        padding: const EdgeInsets.fromLTRB(48, 48, 48, _kNavBarHeight + 80),
+        maxZoom: 17.0,
+      ),
+    );
+  }
+
   void _stopNavigation() {
+    final selectedId = ref.read(selectedMapPlaceIdProvider);
     ref.read(isNavigatingProvider.notifier).state = false;
     ref.read(activeStepIndexProvider.notifier).state = 0;
+    if (selectedId != null) {
+      final coord = stationCoordinates[selectedId];
+      if (coord != null) _mapController.move(coord, 17.0);
+    }
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -269,10 +349,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final locationAsync = ref.watch(userLocationProvider);
     final userPosition = locationAsync.valueOrNull;
     final routePoints = ref.watch(routePointsProvider);
-    final routeLoading = ref.watch(routeLoadingProvider);
     final routeSteps = ref.watch(routeStepsProvider);
     final activeStep = ref.watch(activeStepIndexProvider);
     final isNavigating = ref.watch(isNavigatingProvider);
+    final routeLoading = ref.watch(routeLoadingProvider);
 
     // อัปเดตขั้นตอนนำทางตาม GPS อัตโนมัติ
     ref.listen<AsyncValue<Position?>>(userLocationProvider, (_, next) {
@@ -299,9 +379,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
       }
     });
 
-    final safeBottom = MediaQuery.of(context).padding.bottom;
-    final cardBottom = safeBottom + _kNavBarHeight + 16;
-
     final markers = <Marker>[
       for (final place in places)
         if (stationCoordinates[place.id] != null)
@@ -314,21 +391,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
               place: place,
               isSelected: place.id == selectedId,
               onTap: () {
-                final coord = stationCoordinates[place.id];
                 if (place.id == selectedId) {
                   ref.read(selectedMapPlaceIdProvider.notifier).state = null;
                   ref.read(routePointsProvider.notifier).state = const [];
+                  ref.read(routeStepsProvider.notifier).state = const [];
                 } else {
                   ref.read(selectedMapPlaceIdProvider.notifier).state = place.id;
-                  if (coord != null) {
-                    _fitRoute(coord);
-                    if (userPosition != null) {
-                      _loadRoute(
-                        LatLng(userPosition.latitude, userPosition.longitude),
-                        coord,
-                      );
-                    }
-                  }
                 }
               },
             ),
@@ -383,6 +451,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.rimnam.chanthabun',
                 maxZoom: 19,
+                tileProvider: _tileProvider,
               ),
               // เส้นทาง OSRM จริง (ถ้าโหลดแล้ว)
               if (routePoints.length >= 2)
@@ -415,58 +484,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ],
           ),
 
-          // ====== Loading indicator เมื่อโหลดเส้นทาง ======
-          if (routeLoading)
-            Positioned(
-              top: 12,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.espresso.withOpacity(0.92),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.teal.withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          valueColor: AlwaysStoppedAnimation(AppColors.teal),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'กำลังหาเส้นทาง...',
-                        style: TextStyle(
-                          color: AppColors.cream,
-                          fontSize: 11,
-                          fontFamily: 'Noto Serif Thai',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
           // ====== Navigation Panel — แสดงเมื่อนำทาง ======
-          if (isNavigating && routeSteps.isNotEmpty)
+          if (isNavigating)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _NavigationPanel(
-                step: routeSteps[activeStep.clamp(0, routeSteps.length - 1)],
-                stepIndex: activeStep,
-                totalSteps: routeSteps.length,
-                onStop: _stopNavigation,
-              ),
+              child: routeLoading || routeSteps.isEmpty
+                  ? _NavigationLoadingPanel(onStop: _stopNavigation)
+                  : _NavigationPanel(
+                      step: routeSteps[activeStep.clamp(0, routeSteps.length - 1)],
+                      stepIndex: activeStep,
+                      totalSteps: routeSteps.length,
+                      onStop: _stopNavigation,
+                    ),
             ),
 
           // ====== Legend บนขวา (ซ่อนเมื่อนำทาง) ======
@@ -485,12 +516,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
               child: _LocationChip(locationAsync: locationAsync),
             ),
 
+          // ====== Download progress banner (แสดงครั้งแรกที่เปิดแมพ) ======
+          if (_downloadProgress != null && !isNavigating)
+            Positioned(
+              top: 50,
+              left: 16,
+              child: _TileDownloadBanner(progress: _downloadProgress!),
+            ),
+
           // ====== Bottom card เมื่อเลือกสถานที่ — centered ======
           if (selectedId != null && !isNavigating)
             Positioned(
               left: 0,
               right: 0,
-              bottom: cardBottom,
+              bottom: _kNavBarHeight + 8,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
@@ -501,7 +540,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       place: places.firstWhere((p) => p.id == selectedId),
                       userPosition: userPosition,
                       translations: translations,
-                      routeReady: routePoints.length >= 2,
                       isNavigating: isNavigating,
                       onClose: () {
                         ref.read(selectedMapPlaceIdProvider.notifier).state = null;
@@ -509,17 +547,60 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         ref.read(routeStepsProvider.notifier).state = const [];
                         _stopNavigation();
                       },
-                      onNavigate: () {
-                        ref.read(isNavigatingProvider.notifier).state = !isNavigating;
-                        if (!isNavigating) {
-                          // เพิ่งเริ่มนำทาง — center ที่ผู้ใช้
-                          if (userPosition != null) {
-                            _mapController.move(
-                              LatLng(userPosition.latitude, userPosition.longitude),
-                              17.0,
-                            );
-                          }
+                      onNavigate: () async {
+                        if (isNavigating) {
+                          _stopNavigation();
+                          return;
                         }
+                        if (userPosition == null) {
+                          final open = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: AppColors.espresso,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              title: const Text(
+                                'ต้องการ GPS',
+                                style: TextStyle(
+                                  color: AppColors.gold,
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              content: const Text(
+                                'กรุณาเปิด GPS เพื่อใช้งานการนำทาง',
+                                style: TextStyle(
+                                  color: AppColors.cream,
+                                  fontFamily: 'Noto Serif Thai',
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('ยกเลิก',
+                                      style:
+                                          TextStyle(color: AppColors.cream)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('เปิดการตั้งค่า',
+                                      style: TextStyle(color: AppColors.gold)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (!mounted) return;
+                          if (open == true) {
+                            await Geolocator.openLocationSettings();
+                            if (mounted) ref.invalidate(userLocationProvider);
+                          }
+                          return;
+                        }
+                        final userLatLng = LatLng(
+                            userPosition.latitude, userPosition.longitude);
+                        ref.read(isNavigatingProvider.notifier).state = true;
+                        _mapController.move(userLatLng, 17.0);
+                        unawaited(_loadRoute(userLatLng, selectedId));
                       },
                     ),
                   ),
@@ -845,13 +926,77 @@ class _NavigationPanel extends StatelessWidget {
 }
 
 // ============================================================
+// Navigation Loading Panel — แสดงขณะโหลดเส้นทาง ORS
+// ============================================================
+class _NavigationLoadingPanel extends StatelessWidget {
+  final VoidCallback onStop;
+  const _NavigationLoadingPanel({required this.onStop});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          decoration: BoxDecoration(
+            color: AppColors.espresso.withOpacity(0.95),
+            border: Border(
+              bottom: BorderSide(color: AppColors.teal.withOpacity(0.4), width: 1),
+            ),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation(AppColors.teal),
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Text(
+                  'กำลังโหลดเส้นทาง...',
+                  style: TextStyle(
+                    color: AppColors.cream,
+                    fontSize: 15,
+                    fontFamily: 'Noto Serif Thai',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onStop,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.mahogany.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: AppColors.mahogany.withOpacity(0.6), width: 1),
+                  ),
+                  child: const Icon(Icons.close, color: AppColors.cream, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
 // Bottom card — รายละเอียด + ปุ่มดูข้อมูล + ถ่ายรูป + นำทาง
 // ============================================================
 class _MapBottomCard extends ConsumerWidget {
   final Place place;
   final Position? userPosition;
   final Map<String, String> translations;
-  final bool routeReady;
   final bool isNavigating;
   final VoidCallback onClose;
   final VoidCallback onNavigate;
@@ -861,7 +1006,6 @@ class _MapBottomCard extends ConsumerWidget {
     required this.place,
     required this.userPosition,
     required this.translations,
-    required this.routeReady,
     required this.isNavigating,
     required this.onClose,
     required this.onNavigate,
@@ -1025,16 +1169,19 @@ class _MapBottomCard extends ConsumerWidget {
                         color: isDone
                             ? Colors.greenAccent.shade200
                             : AppColors.gold,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CameraScreen(placeId: place.id),
-                          ),
-                        ),
+                        onTap: isDone
+                            ? null
+                            : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        CameraScreen(placeId: place.id),
+                                  ),
+                                ),
                       ),
                     ),
-                    // ปุ่มเริ่ม/หยุดนำทาง
-                    if (coord != null && routeReady) ...[
+                    // ปุ่มนำทาง
+                    if (coord != null) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: onNavigate,
@@ -1042,25 +1189,18 @@ class _MapBottomCard extends ConsumerWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: isNavigating
-                                ? AppColors.mahogany
-                                : AppColors.teal,
+                            color: isNavigating ? AppColors.mahogany : AppColors.teal,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: (isNavigating
-                                        ? AppColors.mahogany
-                                        : AppColors.teal)
-                                    .withOpacity(0.4),
+                                color: (isNavigating ? AppColors.mahogany : AppColors.teal).withOpacity(0.4),
                                 blurRadius: 8,
                               ),
                             ],
                           ),
                           child: Icon(
-                            isNavigating
-                                ? Icons.stop_rounded
-                                : Icons.navigation_rounded,
-                            color: AppColors.ink,
+                            isNavigating ? Icons.stop_rounded : Icons.navigation_rounded,
+                            color: Colors.white,
                             size: 22,
                           ),
                         ),
@@ -1245,6 +1385,67 @@ class _LegendRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ============================================================
+// Tile download progress banner
+// ============================================================
+class _TileDownloadBanner extends StatelessWidget {
+  final double progress; // 0.0 – 1.0
+
+  const _TileDownloadBanner({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (progress * 100).round();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.espresso.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.teal.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 10,
+                height: 10,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  valueColor: AlwaysStoppedAnimation(AppColors.teal),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'บันทึกแผนที่ offline... $pct%',
+                style: const TextStyle(
+                  color: AppColors.cream,
+                  fontSize: 10,
+                  fontFamily: 'Noto Serif Thai',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          SizedBox(
+            width: 160,
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white12,
+              valueColor: const AlwaysStoppedAnimation(AppColors.teal),
+              minHeight: 3,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

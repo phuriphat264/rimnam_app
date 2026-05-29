@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,8 +9,11 @@ import 'core/storage/storage_service.dart';
 import 'features/language/language_screen.dart';
 
 void main() async {
-  // จำเป็นต้องเรียกใช้เมื่อมีการใช้ async ก่อน runApp (เช่น การโหลด SharedPreferences)
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize FMTC tile cache backend (ObjectBox)
+  await FMTCObjectBoxBackend().initialise();
+  await FMTCStore('chanthaburi').manage.create();
 
   // โหลด SharedPreferences เตรียมไว้ตั้งแต่เริ่มแอป
   final prefs = await SharedPreferences.getInstance();

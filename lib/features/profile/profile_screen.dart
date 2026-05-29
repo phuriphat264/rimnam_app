@@ -21,6 +21,7 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'PROFILES',
           style: TextStyle(
@@ -222,7 +223,7 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 110),
           ],
         ),
       ),

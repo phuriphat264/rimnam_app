@@ -75,6 +75,47 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Future<void> _takePicture() async {
     if (_isProcessing || !_isCameraReady || _cameraController == null) return;
 
+    // เช็คระยะ GPS ก่อนยืนยันภารกิจ
+    final locationAsync = ref.read(userLocationProvider);
+    final userPos = locationAsync.valueOrNull;
+    final dist = distanceToStation(userPos, widget.placeId);
+
+    if (userPos == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'ไม่พบตำแหน่ง GPS กรุณาเปิด GPS ก่อนถ่ายรูปยืนยัน',
+              style: TextStyle(fontFamily: 'Noto Serif Thai'),
+            ),
+            backgroundColor: AppColors.mahogany,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (dist != null && dist > 50) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'คุณอยู่ห่างสถานที่ ${formatDistance(dist)} กรุณาเข้าใกล้กว่านี้เพื่อยืนยันภารกิจ',
+              style: const TextStyle(fontFamily: 'Noto Serif Thai'),
+            ),
+            backgroundColor: AppColors.mahogany,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isFlashing = true);
     await Future.delayed(const Duration(milliseconds: 80));
     setState(() => _isFlashing = false);

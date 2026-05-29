@@ -370,8 +370,33 @@ class PlaceDetailScreen extends ConsumerWidget {
                         if (isDone) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(translations['place_completed'] ?? 'คุณทำภารกิจสถานที่นี้เสร็จแล้ว 🎉'),
-                              backgroundColor: AppColors.sage,
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_rounded,
+                                      color: AppColors.amber, size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      translations['place_completed'] ?? 'คุณทำภารกิจสถานที่นี้เสร็จแล้ว 🎉',
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Serif Thai',
+                                        color: AppColors.cream,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: AppColors.espresso,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: AppColors.gold.withOpacity(0.4),
+                                ),
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              elevation: 8,
                             ),
                           );
                           return;
@@ -388,37 +413,94 @@ class PlaceDetailScreen extends ConsumerWidget {
                             if (!context.mounted) return;
                             final goAnyway = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                backgroundColor: AppColors.espresso,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(color: AppColors.gold.withOpacity(0.3)),
-                                ),
-                                title: const Text(
-                                  'ยังอยู่ไกลเกินไป',
-                                  style: TextStyle(
-                                    color: AppColors.gold,
-                                    fontFamily: 'Noto Serif Thai',
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                content: Text(
-                                  'คุณอยู่ห่างจากสถานที่นี้ประมาณ ${formatDistance(dist)}\n\nกรุณาเดินทางไปยังสถานที่ก่อนถ่ายภาพ เพื่อให้ภารกิจถูกต้อง',
-                                  style: const TextStyle(
-                                    color: AppColors.cream,
-                                    fontFamily: 'Noto Serif Thai',
-                                    height: 1.6,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text(
-                                      'กลับไปดูแผนที่',
-                                      style: TextStyle(color: AppColors.gold, fontFamily: 'Noto Serif Thai'),
+                              barrierColor: Colors.black.withOpacity(0.65),
+                              builder: (ctx) => Dialog(
+                                backgroundColor: Colors.transparent,
+                                insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(28),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.espresso.withOpacity(0.95),
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(
+                                          color: AppColors.gold.withOpacity(0.35),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 56,
+                                            height: 56,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.mahogany.withOpacity(0.15),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: AppColors.mahogany.withOpacity(0.5),
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.location_off_rounded,
+                                              color: AppColors.mahogany,
+                                              size: 26,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 18),
+                                          const Text(
+                                            'ยังอยู่ไกลเกินไป',
+                                            style: TextStyle(
+                                              color: AppColors.gold,
+                                              fontFamily: 'Noto Serif Thai',
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            'คุณอยู่ห่างจากสถานที่นี้ประมาณ ${formatDistance(dist)}\n\nกรุณาเดินทางไปยังสถานที่ก่อนถ่ายภาพ',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: AppColors.cream.withOpacity(0.8),
+                                              fontFamily: 'Noto Serif Thai',
+                                              fontSize: 13,
+                                              height: 1.7,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          GestureDetector(
+                                            onTap: () => Navigator.pop(ctx, false),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.gold.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: AppColors.gold.withOpacity(0.45),
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'กลับไปดูแผนที่',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: AppColors.gold,
+                                                  fontFamily: 'Noto Serif Thai',
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             );
                             if (goAnyway != true) return;
@@ -441,13 +523,6 @@ class PlaceDetailScreen extends ConsumerWidget {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1C0E04).withOpacity(0.4),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            )
-                          ],
                         ),
                         child: Container(
                           alignment: Alignment.center,

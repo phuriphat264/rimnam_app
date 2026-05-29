@@ -25,7 +25,8 @@ dependencies:
   url_launcher: ^6.3.1            # เปิด Google Maps นำทาง
   image_picker: ^1.1.2            # เปิดกล้องจริง + จัดการ permission อัตโนมัติ
   camera: ^0.11.0                 # Camera preview แบบ in-app
-  http: ^1.2.0                    # เรียก OSRM routing API
+  flutter_map_tile_caching: ^10.0.0 # Offline tile caching
+  http: ^1.2.1
 
   # --- UI & Design ---
   google_fonts: ^6.1.0            # สำหรับโหลด Noto Serif Thai และ Playfair Display อัตโนมัติ
