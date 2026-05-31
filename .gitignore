@@ -2,6 +2,9 @@
 dart_defines.json
 run.bat
 .vscode/launch.json
+android/app/google-services.json
+backend/.env
+backend/uploads/
 
 # Miscellaneous
 *.class

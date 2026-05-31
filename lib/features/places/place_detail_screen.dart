@@ -159,7 +159,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                         (translations['spot_progress'] ?? 'SPOT · {index} OF {total}').replaceAll('{index}', index.toString().padLeft(2, '0')).replaceAll('{total}', totalPlaces.toString().padLeft(2, '0')),
                         style: TextStyle(
                           fontFamily: 'Cormorant Garamond',
-                          fontSize: 10,
+                          fontSize: 11,
                           letterSpacing: 4,
                           color: AppColors.amber.withOpacity(0.8),
                           fontWeight: FontWeight.bold,
@@ -170,7 +170,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                         translations['place_${place.id}_name'] ?? place.name,
                         style: const TextStyle(
                           fontFamily: 'Noto Serif Thai',
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           shadows: [
@@ -186,7 +186,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                         translations['place_${place.id}_loc'] ?? place.location,
                         style: TextStyle(
                           fontFamily: 'Noto Serif Thai',
-                          fontSize: 11,
+                          fontSize: 13,
                           color: Colors.white.withOpacity(0.9),
                         ),
                       ),
@@ -224,14 +224,27 @@ class PlaceDetailScreen extends ConsumerWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          translations['history'] ?? 'ประวัติศาสตร์',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Serif Thai',
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.mahogany,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppColors.mahogany,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              translations['history'] ?? 'ประวัติศาสตร์',
+                              style: const TextStyle(
+                                fontFamily: 'Noto Serif Thai',
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.mahogany,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Container(
@@ -291,9 +304,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                                 translations['mission_hint'] ?? 'คำใบ้ภารกิจ',
                                 style: TextStyle(
                                   fontFamily: 'Noto Serif Thai',
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.mahogany.withOpacity(0.8),
+                                  color: AppColors.mahogany.withOpacity(0.85),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -303,7 +316,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                                     : (translations['place_${place.id}_hint'] ?? place.hint),
                                 style: const TextStyle(
                                   fontFamily: 'Noto Serif Thai',
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   height: 1.6,
                                   color: AppColors.sienna,
                                 ),
@@ -406,14 +419,46 @@ class PlaceDetailScreen extends ConsumerWidget {
                           return;
                         }
 
-                        // ===== ตรวจสอบระยะห่าง GPS ก่อนเปิดกล้อง =====
+                        // ===== ตรวจสอบ GPS ก่อนเปิดกล้อง =====
                         final locationAsync = ref.read(userLocationProvider);
                         final userPos = locationAsync.valueOrNull;
 
-                        if (userPos != null) {
-                          final dist = distanceToStation(userPos, place.id);
-                          if (dist != null && dist > 200) {
-                            // อยู่ไกลเกิน 200 เมตร — แสดง dialog เตือน
+                        if (userPos == null) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.location_off_rounded,
+                                      color: AppColors.amber, size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      translations['gps_required_photo'] ??
+                                          'กรุณาเปิด GPS ก่อนถ่ายรูปยืนยันภารกิจ',
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Serif Thai',
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: AppColors.mahogany,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final dist = distanceToStation(userPos, place.id);
+                        if (dist != null && dist > 50) {
+                            // อยู่ไกลเกิน 50 เมตร — แสดง dialog เตือน (ตรงกับ camera_screen)
                             if (!context.mounted) return;
                             final goAnyway = await showDialog<bool>(
                               context: context,
@@ -455,9 +500,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                                             ),
                                           ),
                                           const SizedBox(height: 18),
-                                          const Text(
-                                            'ยังอยู่ไกลเกินไป',
-                                            style: TextStyle(
+                                          Text(
+                                            translations['gps_too_far_title'] ?? 'ยังอยู่ไกลเกินไป',
+                                            style: const TextStyle(
                                               color: AppColors.gold,
                                               fontFamily: 'Noto Serif Thai',
                                               fontSize: 18,
@@ -466,7 +511,9 @@ class PlaceDetailScreen extends ConsumerWidget {
                                           ),
                                           const SizedBox(height: 10),
                                           Text(
-                                            'คุณอยู่ห่างจากสถานที่นี้ประมาณ ${formatDistance(dist)}\n\nกรุณาเดินทางไปยังสถานที่ก่อนถ่ายภาพ',
+                                            (translations['gps_too_far_body'] ??
+                                                    'คุณอยู่ห่างจากสถานที่นี้ประมาณ {distance}\n\nกรุณาเดินทางไปยังสถานที่ก่อนถ่ายภาพ')
+                                                .replaceAll('{distance}', formatDistance(dist)),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                               color: AppColors.cream.withOpacity(0.8),
@@ -488,10 +535,10 @@ class PlaceDetailScreen extends ConsumerWidget {
                                                   color: AppColors.gold.withOpacity(0.45),
                                                 ),
                                               ),
-                                              child: const Text(
-                                                'กลับไปดูแผนที่',
+                                              child: Text(
+                                                translations['gps_back_to_map'] ?? 'กลับไปดูแผนที่',
                                                 textAlign: TextAlign.center,
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   color: AppColors.gold,
                                                   fontFamily: 'Noto Serif Thai',
                                                   fontWeight: FontWeight.bold,
@@ -509,8 +556,6 @@ class PlaceDetailScreen extends ConsumerWidget {
                             );
                             if (goAnyway != true) return;
                           }
-                        }
-
                         if (!context.mounted) return;
                         Navigator.push(
                           context,

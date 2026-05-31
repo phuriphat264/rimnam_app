@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>GIDClientID</key>
+	<string>864825294644-jp4bcivaq0lf1po2g93rj0f11u2jsvqn.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.864825294644-jp4bcivaq0lf1po2g93rj0f11u2jsvqn</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ต้องการตำแหน่งของคุณเพื่อแสดงบนแผนที่และคำนวณระยะทางถึงสถานที่ท่องเที่ยว</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

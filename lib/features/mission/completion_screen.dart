@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
-import '../share/share_screen.dart'; // <--- อย่าลืมเช็ค Path ตรงนี้ให้ดึงไฟล์ ShareScreen มาให้ถูกต้องนะครับ
+import '../share/share_screen.dart';
+import '../main/main_screen.dart';
 
 class CompletionScreen extends ConsumerStatefulWidget {
   const CompletionScreen({super.key});
@@ -312,8 +313,11 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> with Single
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               ),
                               onPressed: () {
-                                // กดแล้วเด้งกลับหน้าแรกสุด
-                                Navigator.popUntil(context, (route) => route.isFirst); 
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const MainScreen()),
+                                  (route) => false,
+                                );
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

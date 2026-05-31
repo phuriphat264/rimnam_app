@@ -243,7 +243,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _goToMyLocation() {
     final position = ref.read(userLocationProvider).valueOrNull;
     if (position == null) {
-      _showSnackBar('ไม่พบตำแหน่ง GPS', isError: true);
+      final t = ref.read(translationsProvider);
+      _showSnackBar(t['map_no_gps_snack'] ?? 'ไม่พบตำแหน่ง GPS', isError: true);
       return;
     }
     _mapController.move(LatLng(position.latitude, position.longitude), 17.0);
@@ -259,72 +260,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _mapController.move(_mapController.camera.center, (zoom - 1).clamp(13.0, 19.0));
   }
 
-  // โหลดเส้นทาง: ลอง ORS ก่อน (ตามถนนจริง) fallback → bundled
-  Future<void> _loadRoute(LatLng userPos, String targetStationId) async {
-    ref.read(routePointsProvider.notifier).state = const [];
-    ref.read(routeStepsProvider.notifier).state = const [];
-    ref.read(activeStepIndexProvider.notifier).state = 0;
-    ref.read(routeLoadingProvider.notifier).state = true;
-
-    RouteResult? orsResult;
-    try {
-      orsResult = await fetchOrsRoute(userPos, targetStationId);
-    } catch (_) {
-      // silent — fallback to bundled route
-    }
-
-    if (!mounted) return;
-
-    if (orsResult != null && orsResult.points.length >= 2) {
-      ref.read(routePointsProvider.notifier).state = orsResult.points;
-      ref.read(routeStepsProvider.notifier).state = orsResult.steps;
-      ref.read(routeLoadingProvider.notifier).state = false;
-      _fitRouteCamera([userPos, ...orsResult.points]);
-      return;
-    }
-
-    final fallback = getBundledRouteFromPosition(userPos, targetStationId);
-    ref.read(routePointsProvider.notifier).state = fallback.points;
-    ref.read(routeStepsProvider.notifier).state = fallback.steps;
-    ref.read(routeLoadingProvider.notifier).state = false;
-    if (fallback.points.length >= 2) {
-      _fitRouteCamera([userPos, ...fallback.points]);
-    }
-  }
-
-  void _fitRouteCamera(List<LatLng> allPoints) {
-    if (allPoints.isEmpty) return;
-    var minLat = allPoints.first.latitude;
-    var maxLat = allPoints.first.latitude;
-    var minLng = allPoints.first.longitude;
-    var maxLng = allPoints.first.longitude;
-    for (final p in allPoints.skip(1)) {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
-    }
-    _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(minLat, minLng),
-          LatLng(maxLat, maxLng),
-        ),
-        padding: const EdgeInsets.fromLTRB(48, 48, 48, _kNavBarHeight + 80),
-        maxZoom: 17.0,
-      ),
-    );
-  }
-
-  void _stopNavigation() {
-    final selectedId = ref.read(selectedMapPlaceIdProvider);
-    ref.read(isNavigatingProvider.notifier).state = false;
-    ref.read(activeStepIndexProvider.notifier).state = 0;
-    if (selectedId != null) {
-      final coord = stationCoordinates[selectedId];
-      if (coord != null) _mapController.move(coord, 17.0);
-    }
-  }
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
@@ -332,13 +267,52 @@ class _MapScreenState extends ConsumerState<MapScreen>
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(fontFamily: 'Noto Serif Thai', color: AppColors.cream),
+          style: const TextStyle(fontFamily: 'Noto Serif Thai', color: Colors.white),
         ),
         backgroundColor: isError ? AppColors.mahogany : AppColors.espresso,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  Future<void> _loadRoute(LatLng userPos, String targetId) async {
+    ref.read(routePointsProvider.notifier).state = const [];
+    ref.read(routeStepsProvider.notifier).state = const [];
+    ref.read(activeStepIndexProvider.notifier).state = 0;
+    ref.read(routeLoadingProvider.notifier).state = true;
+
+    try {
+      final result = await fetchOrsRoute(userPos, targetId);
+      if (!mounted) return;
+      if (result.points.length >= 2) {
+        ref.read(routePointsProvider.notifier).state = result.points;
+        ref.read(routeStepsProvider.notifier).state = result.steps;
+      } else {
+        final t = ref.read(translationsProvider);
+        _showSnackBar(t['map_no_route'] ?? 'ไม่พบเส้นทาง กรุณาลองใหม่', isError: true);
+        _stopNavigation();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final t = ref.read(translationsProvider);
+      _showSnackBar(t['map_no_route'] ?? 'ไม่พบเส้นทาง กรุณาลองใหม่', isError: true);
+      _stopNavigation();
+    } finally {
+      if (mounted) ref.read(routeLoadingProvider.notifier).state = false;
+    }
+  }
+
+  void _stopNavigation() {
+    ref.read(isNavigatingProvider.notifier).state = false;
+    ref.read(routePointsProvider.notifier).state = const [];
+    ref.read(routeStepsProvider.notifier).state = const [];
+    ref.read(activeStepIndexProvider.notifier).state = 0;
+    // กลับไปที่จุดหมายที่เลือกไว้
+    final selectedId = ref.read(selectedMapPlaceIdProvider);
+    if (selectedId != null && stationCoordinates[selectedId] != null) {
+      _mapController.move(stationCoordinates[selectedId]!, 17.0);
+    }
   }
 
   @override
@@ -354,29 +328,29 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final isNavigating = ref.watch(isNavigatingProvider);
     final routeLoading = ref.watch(routeLoadingProvider);
 
-    // อัปเดตขั้นตอนนำทางตาม GPS อัตโนมัติ
+    Widget navTitle = routeLoading || routeSteps.isEmpty
+        ? _NavigationLoadingPanel(onStop: _stopNavigation, translations: translations)
+        : _NavigationPanel(
+            step: routeSteps[activeStep.clamp(0, routeSteps.length - 1)],
+            stepIndex: activeStep,
+            totalSteps: routeSteps.length,
+            onStop: _stopNavigation,
+            translations: translations,
+          );
+
+    // auto-center + advance step ขณะนำทาง
     ref.listen<AsyncValue<Position?>>(userLocationProvider, (_, next) {
       final pos = next.valueOrNull;
-      if (pos == null) return;
-      if (!ref.read(isNavigatingProvider)) return;
-
+      if (pos == null || !ref.read(isNavigatingProvider)) return;
+      _mapController.move(LatLng(pos.latitude, pos.longitude), _mapController.camera.zoom);
       final steps = ref.read(routeStepsProvider);
       final idx = ref.read(activeStepIndexProvider);
       if (idx >= steps.length - 1) return;
-
-      // auto-center map ตามผู้ใช้ขณะนำทาง
-      _mapController.move(LatLng(pos.latitude, pos.longitude),
-          _mapController.camera.zoom);
-
-      // advance step เมื่อเข้าใกล้ 20 เมตร
-      final next_ = steps[idx + 1];
       final dist = Geolocator.distanceBetween(
         pos.latitude, pos.longitude,
-        next_.maneuverPoint.latitude, next_.maneuverPoint.longitude,
+        steps[idx + 1].maneuverPoint.latitude, steps[idx + 1].maneuverPoint.longitude,
       );
-      if (dist < 20) {
-        ref.read(activeStepIndexProvider.notifier).state = idx + 1;
-      }
+      if (dist < 30) ref.read(activeStepIndexProvider.notifier).state = idx + 1;
     });
 
     final markers = <Marker>[
@@ -391,13 +365,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
               place: place,
               isSelected: place.id == selectedId,
               onTap: () {
-                if (place.id == selectedId) {
-                  ref.read(selectedMapPlaceIdProvider.notifier).state = null;
-                  ref.read(routePointsProvider.notifier).state = const [];
-                  ref.read(routeStepsProvider.notifier).state = const [];
-                } else {
-                  ref.read(selectedMapPlaceIdProvider.notifier).state = place.id;
-                }
+                if (isNavigating) return;
+                ref.read(selectedMapPlaceIdProvider.notifier).state =
+                    place.id == selectedId ? null : place.id;
               },
             ),
           ),
@@ -413,21 +383,38 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
     return Scaffold(
       backgroundColor: AppColors.ink,
-      appBar: AppBar(
-        backgroundColor: AppColors.espresso,
-        elevation: 0,
-        title: Text(
-          translations['map_title'] ?? 'แผนที่ 6 สถานที่',
-          style: const TextStyle(
-            color: AppColors.gold,
-            fontFamily: 'Noto Serif Thai',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        leading: const SizedBox.shrink(),
-      ),
+      appBar: isNavigating
+          ? AppBar(
+              backgroundColor: AppColors.espresso,
+              elevation: 8,
+              shadowColor: Colors.black54,
+              automaticallyImplyLeading: false,
+              toolbarHeight: 66,
+              titleSpacing: 0,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(2),
+                child: Container(color: AppColors.teal, height: 2),
+              ),
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: navTitle,
+              ),
+            )
+          : AppBar(
+              backgroundColor: AppColors.espresso,
+              elevation: 0,
+              title: Text(
+                translations['map_title'] ?? 'แผนที่ 6 สถานที่',
+                style: const TextStyle(
+                  color: AppColors.gold,
+                  fontFamily: 'Noto Serif Thai',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+              leading: const SizedBox.shrink(),
+            ),
       body: Stack(
         children: [
           // ====== แผนที่ OSM ======
@@ -453,30 +440,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 maxZoom: 19,
                 tileProvider: _tileProvider,
               ),
-              // เส้นทาง OSRM จริง (ถ้าโหลดแล้ว)
+              // เส้นทาง ORS (ถ้าโหลดแล้ว)
               if (routePoints.length >= 2)
                 PolylineLayer(
                   polylines: [
                     Polyline(
                       points: routePoints,
                       color: AppColors.teal,
-                      strokeWidth: 4.0,
-                    ),
-                  ],
-                )
-              // เส้นตรงชั่วคราว (ขณะโหลด หรือ GPS ไม่มี)
-              else if (selectedId != null &&
-                  userPosition != null &&
-                  stationCoordinates[selectedId] != null)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: [
-                        LatLng(userPosition.latitude, userPosition.longitude),
-                        stationCoordinates[selectedId]!,
-                      ],
-                      color: AppColors.teal.withOpacity(0.4),
-                      strokeWidth: 2.0,
+                      strokeWidth: 5.0,
                     ),
                   ],
                 ),
@@ -484,51 +455,34 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ],
           ),
 
-          // ====== Navigation Panel — แสดงเมื่อนำทาง ======
-          if (isNavigating)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: routeLoading || routeSteps.isEmpty
-                  ? _NavigationLoadingPanel(onStop: _stopNavigation)
-                  : _NavigationPanel(
-                      step: routeSteps[activeStep.clamp(0, routeSteps.length - 1)],
-                      stepIndex: activeStep,
-                      totalSteps: routeSteps.length,
-                      onStop: _stopNavigation,
-                    ),
-            ),
-
           // ====== Legend บนขวา (ซ่อนเมื่อนำทาง) ======
           if (!isNavigating)
             Positioned(
-              top: 12,
-              right: 16,
+              top: 12, right: 16,
               child: _MapLegend(translations: translations),
             ),
 
           // ====== GPS chip บนซ้าย (ซ่อนเมื่อนำทาง) ======
           if (!isNavigating)
             Positioned(
-              top: 12,
-              left: 16,
+              top: 12, left: 16,
               child: _LocationChip(locationAsync: locationAsync),
             ),
 
-          // ====== Download progress banner (แสดงครั้งแรกที่เปิดแมพ) ======
+          // ====== Download progress banner ======
           if (_downloadProgress != null && !isNavigating)
             Positioned(
-              top: 50,
-              left: 16,
-              child: _TileDownloadBanner(progress: _downloadProgress!),
+              top: 50, left: 16,
+              child: _TileDownloadBanner(
+                progress: _downloadProgress!,
+                translations: translations,
+              ),
             ),
 
-          // ====== Bottom card เมื่อเลือกสถานที่ — centered ======
+          // ====== Bottom card เมื่อเลือกสถานที่ ======
           if (selectedId != null && !isNavigating)
             Positioned(
-              left: 0,
-              right: 0,
+              left: 0, right: 0,
               bottom: _kNavBarHeight + 8,
               child: Center(
                 child: ConstrainedBox(
@@ -543,61 +497,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       isNavigating: isNavigating,
                       onClose: () {
                         ref.read(selectedMapPlaceIdProvider.notifier).state = null;
-                        ref.read(routePointsProvider.notifier).state = const [];
-                        ref.read(routeStepsProvider.notifier).state = const [];
                         _stopNavigation();
                       },
                       onNavigate: () async {
-                        if (isNavigating) {
-                          _stopNavigation();
-                          return;
-                        }
+                        if (isNavigating) { _stopNavigation(); return; }
                         if (userPosition == null) {
-                          final open = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              backgroundColor: AppColors.espresso,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              title: const Text(
-                                'ต้องการ GPS',
-                                style: TextStyle(
-                                  color: AppColors.gold,
-                                  fontFamily: 'Noto Serif Thai',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              content: const Text(
-                                'กรุณาเปิด GPS เพื่อใช้งานการนำทาง',
-                                style: TextStyle(
-                                  color: AppColors.cream,
-                                  fontFamily: 'Noto Serif Thai',
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('ยกเลิก',
-                                      style:
-                                          TextStyle(color: AppColors.cream)),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('เปิดการตั้งค่า',
-                                      style: TextStyle(color: AppColors.gold)),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (!mounted) return;
-                          if (open == true) {
-                            await Geolocator.openLocationSettings();
-                            if (mounted) ref.invalidate(userLocationProvider);
-                          }
+                          _showSnackBar(translations['map_need_gps_nav'] ?? 'กรุณาเปิด GPS ก่อนนำทาง', isError: true);
                           return;
                         }
-                        final userLatLng = LatLng(
-                            userPosition.latitude, userPosition.longitude);
+                        final userLatLng = LatLng(userPosition.latitude, userPosition.longitude);
                         ref.read(isNavigatingProvider.notifier).state = true;
                         _mapController.move(userLatLng, 17.0);
                         unawaited(_loadRoute(userLatLng, selectedId));
@@ -803,24 +711,17 @@ class _UserLocationMarker extends AnimatedWidget {
 }
 
 // ============================================================
-// Navigation Panel — แสดงขั้นตอนนำทางปัจจุบัน
+// Navigation Panel
 // ============================================================
 IconData _stepIcon(String type, String modifier) {
   if (type == 'arrive') return Icons.flag_rounded;
   if (type == 'depart') return Icons.navigation_rounded;
   switch (modifier) {
-    case 'left':
-    case 'sharp left':
-      return Icons.turn_left_rounded;
-    case 'right':
-    case 'sharp right':
-      return Icons.turn_right_rounded;
-    case 'slight left':
-      return Icons.turn_slight_left_rounded;
-    case 'slight right':
-      return Icons.turn_slight_right_rounded;
-    default:
-      return Icons.straight_rounded;
+    case 'left': case 'sharp left': return Icons.turn_left_rounded;
+    case 'right': case 'sharp right': return Icons.turn_right_rounded;
+    case 'slight left': return Icons.turn_slight_left_rounded;
+    case 'slight right': return Icons.turn_slight_right_rounded;
+    default: return Icons.straight_rounded;
   }
 }
 
@@ -829,163 +730,122 @@ class _NavigationPanel extends StatelessWidget {
   final int stepIndex;
   final int totalSteps;
   final VoidCallback onStop;
+  final Map<String, String> translations;
 
   const _NavigationPanel({
     required this.step,
     required this.stepIndex,
     required this.totalSteps,
     required this.onStop,
+    required this.translations,
   });
 
   @override
   Widget build(BuildContext context) {
     final isArrived = step.type == 'arrive';
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+    return Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: AppColors.espresso.withOpacity(0.95),
-            border: Border(
-              bottom: BorderSide(color: AppColors.teal.withOpacity(0.4), width: 1),
-            ),
+            color: isArrived ? AppColors.gold.withOpacity(0.2) : AppColors.teal.withOpacity(0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: isArrived ? AppColors.gold : AppColors.teal, width: 1.5),
           ),
-          child: Row(
+          child: Icon(
+            _stepIcon(step.type, step.modifier),
+            color: isArrived ? AppColors.gold : AppColors.teal,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // ไอคอนทิศทาง
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isArrived
-                      ? AppColors.gold.withOpacity(0.2)
-                      : AppColors.teal.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isArrived ? AppColors.gold : AppColors.teal,
-                    width: 1.5,
-                  ),
+              Text(
+                step.instruction,
+                style: const TextStyle(
+                  color: AppColors.cream,
+                  fontSize: 15,
+                  fontFamily: 'Noto Serif Thai',
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Icon(
-                  _stepIcon(step.type, step.modifier),
-                  color: isArrived ? AppColors.gold : AppColors.teal,
-                  size: 26,
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: 12),
-              // ข้อความ
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      step.instruction,
-                      style: const TextStyle(
-                        color: AppColors.cream,
-                        fontSize: 15,
-                        fontFamily: 'Noto Serif Thai',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'ขั้นตอนที่ ${stepIndex + 1} / $totalSteps',
-                      style: TextStyle(
-                        color: AppColors.cream.withOpacity(0.5),
-                        fontSize: 11,
-                        fontFamily: 'Noto Serif Thai',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // ปุ่มหยุดนำทาง
-              GestureDetector(
-                onTap: onStop,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.mahogany.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: AppColors.mahogany.withOpacity(0.6), width: 1),
-                  ),
-                  child: const Icon(Icons.close, color: AppColors.cream, size: 18),
+              Text(
+                (translations['nav_step'] ?? 'ขั้นตอนที่ {index} / {total}')
+                    .replaceAll('{index}', '${stepIndex + 1}')
+                    .replaceAll('{total}', '$totalSteps'),
+                style: TextStyle(
+                  color: AppColors.cream.withOpacity(0.5),
+                  fontSize: 10,
+                  fontFamily: 'Noto Serif Thai',
                 ),
               ),
             ],
           ),
         ),
-      ),
+        GestureDetector(
+          onTap: onStop,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.mahogany.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.close, color: AppColors.cream, size: 18),
+          ),
+        ),
+      ],
     );
   }
 }
 
-// ============================================================
-// Navigation Loading Panel — แสดงขณะโหลดเส้นทาง ORS
-// ============================================================
 class _NavigationLoadingPanel extends StatelessWidget {
   final VoidCallback onStop;
-  const _NavigationLoadingPanel({required this.onStop});
+  final Map<String, String> translations;
+  const _NavigationLoadingPanel({required this.onStop, required this.translations});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-          decoration: BoxDecoration(
-            color: AppColors.espresso.withOpacity(0.95),
-            border: Border(
-              bottom: BorderSide(color: AppColors.teal.withOpacity(0.4), width: 1),
-            ),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(AppColors.teal),
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Text(
-                  'กำลังโหลดเส้นทาง...',
-                  style: TextStyle(
-                    color: AppColors.cream,
-                    fontSize: 15,
-                    fontFamily: 'Noto Serif Thai',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: onStop,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.mahogany.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: AppColors.mahogany.withOpacity(0.6), width: 1),
-                  ),
-                  child: const Icon(Icons.close, color: AppColors.cream, size: 18),
-                ),
-              ),
-            ],
+    return Row(
+      children: [
+        const SizedBox(
+          width: 26, height: 26,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation(AppColors.teal),
           ),
         ),
-      ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            translations['nav_loading'] ?? 'กำลังโหลดเส้นทาง...',
+            style: const TextStyle(
+              color: AppColors.cream,
+              fontSize: 15,
+              fontFamily: 'Noto Serif Thai',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        GestureDetector(
+          onTap: onStop,
+          child: Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.mahogany.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.close, color: AppColors.cream, size: 18),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1017,8 +877,12 @@ class _MapBottomCard extends ConsumerWidget {
     final dist = distanceToStation(userPosition, place.id);
     final isDone = place.status == PlaceStatus.done;
 
+    final bool noGps = userPosition == null;
+    final bool isTooFar = !noGps && dist != null && dist > 50;
+    final bool canShoot = !isDone && !noGps && !isTooFar;
+
     final String distanceText = dist != null
-        ? '${formatDistance(dist)} จากคุณ'
+        ? '${formatDistance(dist)} ${translations['map_straight_line'] ?? '(เส้นตรง)'}'
         : place.location;
 
     return TweenAnimationBuilder<double>(
@@ -1145,7 +1009,7 @@ class _MapBottomCard extends ConsumerWidget {
                     Expanded(
                       child: _CardActionButton(
                         icon: Icons.info_outline_rounded,
-                        label: 'รายละเอียด',
+                        label: translations['map_place_details'] ?? 'รายละเอียด',
                         color: AppColors.cream,
                         onTap: () => Navigator.push(
                           context,
@@ -1164,23 +1028,64 @@ class _MapBottomCard extends ConsumerWidget {
                       child: _CardActionButton(
                         icon: isDone
                             ? Icons.check_circle_outline_rounded
-                            : Icons.camera_alt_rounded,
-                        label: isDone ? 'สำเร็จแล้ว' : 'ถ่ายภาพ',
+                            : noGps
+                                ? Icons.gps_off_rounded
+                                : isTooFar
+                                    ? Icons.location_searching
+                                    : Icons.camera_alt_rounded,
+                        label: isDone
+                            ? (translations['map_done'] ?? 'สำเร็จแล้ว')
+                            : noGps
+                                ? (translations['map_camera_need_gps'] ?? 'ต้องการ GPS')
+                                : isTooFar
+                                    ? '${translations['map_far_label'] ?? 'ห่าง'} ${formatDistance(dist)}'
+                                    : (translations['take_photo'] ?? 'ถ่ายภาพ'),
                         color: isDone
                             ? Colors.greenAccent.shade200
-                            : AppColors.gold,
+                            : noGps
+                                ? AppColors.sienna
+                                : isTooFar
+                                    ? AppColors.honey
+                                    : AppColors.gold,
                         onTap: isDone
                             ? null
-                            : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        CameraScreen(placeId: place.id),
-                                  ),
-                                ),
+                            : canShoot
+                                ? () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            CameraScreen(placeId: place.id),
+                                      ),
+                                    )
+                                : () {
+                                    final msg = noGps
+                                        ? (translations['gps_required_photo'] ??
+                                            'กรุณาเปิด GPS ก่อนถ่ายรูปยืนยันภารกิจ')
+                                        : (translations['camera_gps_too_far'] ??
+                                                'คุณอยู่ห่างสถานที่ {distance} กรุณาเข้าใกล้กว่านี้เพื่อยืนยันภารกิจ')
+                                            .replaceAll('{distance}',
+                                                formatDistance(dist!));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          msg,
+                                          style: const TextStyle(
+                                              fontFamily: 'Noto Serif Thai',
+                                              color: Colors.white),
+                                        ),
+                                        backgroundColor: noGps
+                                            ? AppColors.mahogany
+                                            : AppColors.espresso,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12)),
+                                      ),
+                                    );
+                                  },
                       ),
                     ),
-                    // ปุ่มนำทาง
+                    // ปุ่มนำทาง ORS
                     if (coord != null) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
@@ -1341,7 +1246,7 @@ class _MapLegend extends StatelessWidget {
                   color: AppColors.gold,
                   label: translations['map_done']?.replaceAll('✓ ', '') ?? 'สำเร็จ'),
               const SizedBox(height: 6),
-              _LegendRow(color: AppColors.teal, label: 'คุณอยู่ที่นี่', isCircle: false),
+              _LegendRow(color: AppColors.teal, label: translations['map_you_are_here'] ?? 'คุณอยู่ที่นี่', isCircle: false),
             ],
           ),
         ),
@@ -1394,8 +1299,9 @@ class _LegendRow extends StatelessWidget {
 // ============================================================
 class _TileDownloadBanner extends StatelessWidget {
   final double progress; // 0.0 – 1.0
+  final Map<String, String> translations;
 
-  const _TileDownloadBanner({required this.progress});
+  const _TileDownloadBanner({required this.progress, required this.translations});
 
   @override
   Widget build(BuildContext context) {
@@ -1424,7 +1330,7 @@ class _TileDownloadBanner extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'บันทึกแผนที่ offline... $pct%',
+                '${translations['map_saving_tiles'] ?? 'บันทึกแผนที่ offline...'} $pct%',
                 style: const TextStyle(
                   color: AppColors.cream,
                   fontSize: 10,
@@ -1460,24 +1366,25 @@ class _LocationChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final translations = ref.watch(translationsProvider);
     final String label;
     final Color dotColor;
     final bool loading;
 
     if (locationAsync.isLoading) {
-      label = 'กำลังหาตำแหน่ง...';
+      label = translations['map_locating'] ?? 'กำลังหาตำแหน่ง...';
       dotColor = AppColors.honey;
       loading = true;
     } else if (locationAsync.hasError) {
-      label = 'แตะเพื่อลองใหม่';
+      label = translations['map_gps_retry'] ?? 'แตะเพื่อลองใหม่';
       dotColor = AppColors.mahogany;
       loading = false;
     } else if (locationAsync.valueOrNull == null) {
-      label = 'แตะเพื่อเปิด GPS';
+      label = translations['map_gps_enable'] ?? 'แตะเพื่อเปิด GPS';
       dotColor = AppColors.cream.withOpacity(0.4);
       loading = false;
     } else {
-      label = 'GPS เชื่อมต่อแล้ว';
+      label = translations['map_gps_active'] ?? 'GPS เชื่อมต่อแล้ว';
       dotColor = AppColors.teal;
       loading = false;
     }

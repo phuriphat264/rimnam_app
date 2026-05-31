@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../../core/services/api_service.dart';
 import '../places/places_provider.dart';
 import '../places/place_model.dart';
 import '../map/map_provider.dart';
@@ -82,11 +83,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     if (userPos == null) {
       if (mounted) {
+        final t = ref.read(translationsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'ไม่พบตำแหน่ง GPS กรุณาเปิด GPS ก่อนถ่ายรูปยืนยัน',
-              style: TextStyle(fontFamily: 'Noto Serif Thai'),
+            content: Text(
+              t['gps_required_photo'] ?? 'กรุณาเปิด GPS ก่อนถ่ายรูปยืนยันภารกิจ',
+              style: const TextStyle(
+                  fontFamily: 'Noto Serif Thai', color: Colors.white),
             ),
             backgroundColor: AppColors.mahogany,
             behavior: SnackBarBehavior.floating,
@@ -100,11 +103,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     if (dist != null && dist > 50) {
       if (mounted) {
+        final t = ref.read(translationsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'คุณอยู่ห่างสถานที่ ${formatDistance(dist)} กรุณาเข้าใกล้กว่านี้เพื่อยืนยันภารกิจ',
-              style: const TextStyle(fontFamily: 'Noto Serif Thai'),
+              (t['camera_gps_too_far'] ??
+                      'คุณอยู่ห่างสถานที่ {distance} กรุณาเข้าใกล้กว่านี้เพื่อยืนยันภารกิจ')
+                  .replaceAll('{distance}', formatDistance(dist)),
+              style: const TextStyle(
+                  fontFamily: 'Noto Serif Thai', color: Colors.white),
             ),
             backgroundColor: AppColors.mahogany,
             behavior: SnackBarBehavior.floating,
@@ -122,20 +129,34 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     setState(() => _isProcessing = true);
 
+    String? photoUrl;
+    final currentPos = ref.read(userLocationProvider).valueOrNull;
+
     try {
-      await _cameraController!.takePicture();
+      final file = await _cameraController!.takePicture();
+
+      // upload รูปไปเซิร์ฟเวอร์
+      final photoData = await ApiService().uploadPhoto(file.path, placeId: widget.placeId);
+      photoUrl = photoData['url']?.toString();
     } catch (_) {
-      // ถ่ายไม่ได้ก็ยังนับว่าเสร็จภารกิจ
+      // ถ่ายหรืออัพโหลดไม่ได้ก็ยังนับว่าเสร็จภารกิจ
     }
 
     if (!mounted) return;
 
     setState(() => _isFlashing = true);
     await Future.delayed(const Duration(milliseconds: 150));
+    if (!mounted) return;
     setState(() => _isFlashing = false);
     await Future.delayed(const Duration(milliseconds: 400));
 
-    ref.read(placesProvider.notifier).completeMission(widget.placeId);
+    if (!mounted) return;
+    await ref.read(placesProvider.notifier).completeMission(
+          widget.placeId,
+          photoUrl: photoUrl,
+          lat: currentPos?.latitude,
+          lng: currentPos?.longitude,
+        );
     final places = ref.read(placesProvider);
     final isAllDone = places.every((p) => p.status == PlaceStatus.done);
 
@@ -345,9 +366,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
                 // ========== GPS badge ==========
                 Positioned(
-                  left: 20,
+                  left: 0,
+                  right: 0,
                   bottom: 24,
-                  child: _GpsBadge(gpsLoading: gpsLoading, distance: dist),
+                  child: Center(
+                    child: _GpsBadge(gpsLoading: gpsLoading, distance: dist),
+                  ),
                 ),
 
                 // แฟลช

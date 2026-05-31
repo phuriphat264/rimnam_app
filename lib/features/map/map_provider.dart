@@ -5,10 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'route_data.dart';
 
-const _orsApiKey = String.fromEnvironment(
-  'ORS_API_KEY',
-  defaultValue: 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImVlMzNiZTQyNTBiZjQwZTg4MDVkZDI2N2ZiMTg5MzllIiwiaCI6Im11cm11cjY0In0=',
-);
+const _orsApiKey = String.fromEnvironment('ORS_API_KEY');
 
 // ============================================================
 // พิกัด GPS จริงของ 6 สถานที่ในชุมชนริมน้ำจันทบูร
@@ -63,6 +60,20 @@ final routeLoadingProvider = StateProvider<bool>((ref) => false);
 final routeStepsProvider = StateProvider<List<RouteStep>>((ref) => const []);
 final activeStepIndexProvider = StateProvider<int>((ref) => 0);
 final isNavigatingProvider = StateProvider<bool>((ref) => false);
+
+// ระยะทางตามถนนจริง (คำนวณจาก polyline ที่ได้จาก ORS/bundled)
+final routeRoadDistanceProvider = Provider<double?>((ref) {
+  final points = ref.watch(routePointsProvider);
+  if (points.length < 2) return null;
+  double total = 0;
+  for (int i = 0; i < points.length - 1; i++) {
+    total += Geolocator.distanceBetween(
+      points[i].latitude, points[i].longitude,
+      points[i + 1].latitude, points[i + 1].longitude,
+    );
+  }
+  return total;
+});
 
 // ============================================================
 // สร้างข้อความนำทางภาษาไทยจาก OSRM maneuver
@@ -165,6 +176,16 @@ RouteResult getBundledRouteFromPosition(LatLng userPos, String targetId) {
 }
 
 // ============================================================
+// GPS service status stream (on / off auto-detect)
+// ============================================================
+final gpsServiceStatusProvider = StreamProvider<bool>((ref) async* {
+  yield await Geolocator.isLocationServiceEnabled();
+  yield* Geolocator.getServiceStatusStream().map(
+    (s) => s == ServiceStatus.enabled,
+  );
+});
+
+// ============================================================
 // GPS location stream
 // ============================================================
 final userLocationProvider = StreamProvider<Position?>((ref) async* {
@@ -172,10 +193,8 @@ final userLocationProvider = StreamProvider<Position?>((ref) async* {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) { yield null; return; }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    // ไม่ขออนุญาตเอง — main_screen จัดการ permission flow แล้ว
+    final permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       yield null;
@@ -241,15 +260,15 @@ String formatDistance(double meters) {
 // ============================================================
 // OpenRouteService walking route
 // ============================================================
+// ORS driving-car — เส้นทางรถยนต์ที่ใกล้ที่สุด
 Future<RouteResult> fetchOrsRoute(LatLng userPos, String targetId) async {
-  if (_orsApiKey.isEmpty) throw Exception('ORS_API_KEY not configured');
+  if (_orsApiKey.isEmpty) throw Exception('ORS_API_KEY not set');
 
   final target = stationCoordinates[targetId];
   if (target == null) return RouteResult.empty;
 
   final url = Uri.parse(
-    'https://api.openrouteservice.org/v2/directions/driving-car/geojson'
-    '?api_key=$_orsApiKey',
+    'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
   );
 
   final response = await http.post(
@@ -264,37 +283,33 @@ Future<RouteResult> fetchOrsRoute(LatLng userPos, String targetId) async {
         [userPos.longitude, userPos.latitude],
         [target.longitude, target.latitude],
       ],
-      'preference': 'recommended',
+      'preference': 'shortest',
       'instructions': true,
       'units': 'm',
-      'options': {
-        'avoid_features': ['ferries', 'tollways'],
-      },
     }),
   ).timeout(const Duration(seconds: 10));
-  if (response.statusCode != 200) throw Exception('ORS ${response.statusCode}');
+
+  if (response.statusCode != 200) {
+    throw Exception('ORS ${response.statusCode}: ${response.body}');
+  }
 
   final data = jsonDecode(response.body) as Map<String, dynamic>;
   final features = data['features'] as List<dynamic>;
   if (features.isEmpty) return RouteResult.empty;
 
   final feature = features[0] as Map<String, dynamic>;
-
   final coords = (feature['geometry']['coordinates'] as List<dynamic>)
       .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
       .toList();
 
-  final segments =
-      (feature['properties']['segments'] as List<dynamic>);
   final steps = <RouteStep>[];
-
-  for (final seg in segments) {
+  for (final seg in feature['properties']['segments'] as List<dynamic>) {
     for (final step in seg['steps'] as List<dynamic>) {
-      final type = step['type'] as int;
-      final name = step['name'] as String? ?? '';
-      final dist = (step['distance'] as num).toDouble();
+      final type    = step['type'] as int;
+      final name    = step['name'] as String? ?? '';
+      final dist    = (step['distance'] as num).toDouble();
       final wpStart = (step['way_points'] as List<dynamic>)[0] as int;
-      final pt = coords[wpStart.clamp(0, coords.length - 1)];
+      final pt      = coords[wpStart.clamp(0, coords.length - 1)];
 
       steps.add(RouteStep(
         instruction: _orsInstruction(type, name, dist),

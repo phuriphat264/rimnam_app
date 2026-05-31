@@ -48,42 +48,6 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Top bar
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                      child: Row(
-                        children: [
-                          // Back button
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.25),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.1),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
                 // Bottom content
                 Positioned(
@@ -109,7 +73,7 @@ class HistoryScreen extends ConsumerWidget {
                         child: Text(
                           translations['history_tag'] ?? '',
                           style: const TextStyle(
-                            fontSize: 9,
+                            fontSize: 11,
                             letterSpacing: 1,
                             color: AppColors.amber,
                           ),
@@ -165,7 +129,7 @@ class HistoryScreen extends ConsumerWidget {
                     Text(
                       translations['history_section_title'] ?? '',
                       style: const TextStyle(
-                        fontSize: 9,
+                        fontSize: 11,
                         letterSpacing: 4,
                         color: AppColors.caramel,
                       ),

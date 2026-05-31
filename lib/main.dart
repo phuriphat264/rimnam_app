@@ -6,31 +6,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_colors.dart';
 import 'core/storage/storage_service.dart';
+import 'core/services/api_service.dart';
 import 'features/language/language_screen.dart';
+import 'features/main/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize FMTC tile cache backend (ObjectBox)
   await FMTCObjectBoxBackend().initialise();
   await FMTCStore('chanthaburi').manage.create();
 
-  // โหลด SharedPreferences เตรียมไว้ตั้งแต่เริ่มแอป
   final prefs = await SharedPreferences.getInstance();
+  final isLoggedIn = await ApiService().isLoggedIn();
 
   runApp(
     ProviderScope(
-      // นำ prefs ที่โหลดเสร็จแล้ว มาใส่ใน Provider เพื่อให้ทั้งแอปดึงไปใช้งานได้ทันที (Synchronous)
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: const RimnamApp(),
+      child: RimnamApp(isLoggedIn: isLoggedIn),
     ),
   );
 }
 
 class RimnamApp extends StatelessWidget {
-  const RimnamApp({super.key});
+  final bool isLoggedIn;
+  const RimnamApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +63,7 @@ class RimnamApp extends StatelessWidget {
         useMaterial3: true,
       ),
       
-      // เริ่มต้น Flow ด้วยหน้าเลือกภาษา
-      home: const LanguageScreenPremium(),
+      home: isLoggedIn ? const MainScreen() : const LanguageScreenPremium(),
     );
   }
 }
