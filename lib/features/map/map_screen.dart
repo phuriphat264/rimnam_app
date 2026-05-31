@@ -238,16 +238,32 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   // โหลดเส้นทาง + ขั้นตอนจาก OSRM
-  Future<void> _loadRoute(LatLng from, LatLng to) async {
+  Future<void> _loadRoute(LatLng userPos, String targetId) async {
     ref.read(routeLoadingProvider.notifier).state = true;
     ref.read(routePointsProvider.notifier).state = const [];
     ref.read(routeStepsProvider.notifier).state = const [];
     ref.read(activeStepIndexProvider.notifier).state = 0;
-    final result = await fetchWalkingRoute(from, to);
-    if (mounted) {
-      ref.read(routePointsProvider.notifier).state = result.points;
-      ref.read(routeStepsProvider.notifier).state = result.steps;
-      ref.read(routeLoadingProvider.notifier).state = false;
+    
+    try {
+      final result = await fetchOrsRoute(userPos, targetId);
+      if (mounted) {
+        if (result.points.length >= 2) {
+          ref.read(routePointsProvider.notifier).state = result.points;
+          ref.read(routeStepsProvider.notifier).state = result.steps;
+        } else {
+          _showSnackBar('ไม่พบเส้นทาง กรุณาลองใหม่', isError: true);
+          _stopNavigation();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('เกิดข้อผิดพลาดในการโหลดเส้นทาง', isError: true);
+        _stopNavigation();
+      }
+    } finally {
+      if (mounted) {
+        ref.read(routeLoadingProvider.notifier).state = false;
+      }
     }
   }
 
@@ -335,7 +351,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     if (userPosition != null) {
                       _loadRoute(
                         LatLng(userPosition.latitude, userPosition.longitude),
-                        coord,
+                        place.id,
                       );
                     }
                   }

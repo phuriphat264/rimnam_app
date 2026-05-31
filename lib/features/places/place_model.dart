@@ -55,7 +55,7 @@ final List<Place> mockPlaces = [
   const Place(
     id: '1',
     name: 'วัดโบสถ์เมือง',
-    imageUrl: 'assets/images/1.1.jpg',
+    imageUrl: 'assets/images/1.jpg',
     galleryImages: [
       'assets/images/1.jpg',
       'assets/images/1.1.jpg',
