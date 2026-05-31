@@ -2,31 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../../core/services/api_service.dart';
 import '../places/places_provider.dart';
-// import 'share_screen.dart'; // เปิดคอมเมนต์ถ้าต้องการให้กดที่เหรียญแล้วไปหน้าแชร์
+import '../auth/auth_provider.dart';
+import 'edit_profile_screen.dart';
+import 'notifications_screen.dart';
+import 'help_screen.dart';
+import '../language/language_screen.dart';
+
+final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  try {
+    return await ApiService().get('/users/me');
+  } catch (_) {
+    return null;
+  }
+});
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ดึงจำนวนสถานที่ที่ทำสำเร็จแล้วมาแสดงเป็นสถิติ
     final completedCount = ref.watch(completedCountProvider);
     final totalPlaces = ref.watch(placesProvider).length;
     final isAllDone = completedCount == totalPlaces;
     final translations = ref.watch(translationsProvider);
+    final lang = ref.watch(languageProvider) ?? 'th';
+    final userAsync = ref.watch(userProfileProvider);
+    final user = userAsync.valueOrNull;
 
     return Scaffold(
-      backgroundColor: AppColors.ink, // พื้นหลังสีน้ำตาลเข้ม
+      backgroundColor: AppColors.ink,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.espresso,
         elevation: 0,
-        title: const Text(
-          'PROFILES',
+        automaticallyImplyLeading: false,
+        title: Text(
+          translations['appbar_profile'] ?? 'โปรไฟล์',
           style: TextStyle(
-            fontFamily: 'Cormorant Garamond',
-            fontSize: 14,
-            letterSpacing: 4,
+            fontFamily: lang == 'en' ? 'Cormorant Garamond' : 'Noto Serif Thai',
+            fontSize: lang == 'en' ? 14 : 18,
+            letterSpacing: lang == 'en' ? 4 : 1,
             color: AppColors.gold,
             fontWeight: FontWeight.bold,
           ),
@@ -36,65 +52,81 @@ class ProfileScreen extends ConsumerWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // ==========================================
-            // 1. ส่วนข้อมูลผู้ใช้ (User Info)
-            // ==========================================
+            // ── User Info ──────────────────────────────────────
             const SizedBox(height: 20),
             Center(
               child: Stack(
                 children: [
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 96,
+                    height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.gold, width: 2),
-                      image: const DecorationImage(
-                        // ใช้รูป Placeholder ไปก่อน สามารถเปลี่ยนเป็นรูป User จริงได้
-                        image: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop'),
-                        fit: BoxFit.cover,
-                      ),
+                    ),
+                    child: ClipOval(
+                      child: user?['avatar_url'] != null
+                          ? Image.network(
+                              (user!['avatar_url'] as String).startsWith('http')
+                                  ? user['avatar_url']
+                                  : '${kBaseUrl.replaceAll('/api/v1', '')}${user['avatar_url']}',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _defaultAvatar(),
+                            )
+                          : _defaultAvatar(),
                     ),
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.gold,
-                        shape: BoxShape.circle,
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                      ).then((_) => ref.invalidate(userProfileProvider)),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.edit, size: 13, color: AppColors.ink),
                       ),
-                      child: const Icon(Icons.edit, size: 14, color: AppColors.ink),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              translations['profile_name'] ?? 'นักสำรวจนิรนาม',
-              style: const TextStyle(
-                fontFamily: 'Noto Serif Thai',
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            const SizedBox(height: 14),
+
+            // ชื่อ
+            userAsync.isLoading
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+                  )
+                : Text(
+                    user?['display_name'] ?? translations['profile_name'] ?? 'นักสำรวจนิรนาม',
+                    style: const TextStyle(
+                      fontFamily: 'Noto Serif Thai',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
             const SizedBox(height: 4),
             Text(
-              'explorer@chanthaburi.com',
+              user?['email'] ?? '',
               style: TextStyle(
                 fontFamily: 'Noto Serif Thai',
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withOpacity(0.45),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
 
-            // ==========================================
-            // 2. สถิติการเดินทาง (Travel Stats)
-            // ==========================================
+            // ── Travel Stats ───────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -104,20 +136,18 @@ class ProfileScreen extends ConsumerWidget {
                     value: '$completedCount',
                     icon: Icons.location_on,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   _StatBox(
                     title: translations['profile_total_missions'] ?? 'ภารกิจทั้งหมด',
-                    value: '1',
+                    value: '$totalPlaces',
                     icon: Icons.flag,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
 
-            // ==========================================
-            // 3. หอเกียรติยศ / ตราประทับ (Achievements)
-            // ==========================================
+            // ── Stamp Book ─────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -127,102 +157,133 @@ class ProfileScreen extends ConsumerWidget {
                     translations['profile_stamp_book'] ?? 'สมุดสะสมตราประทับ',
                     style: const TextStyle(
                       fontFamily: 'Noto Serif Thai',
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: AppColors.gold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // กล่องตราประทับ (ถ้าทำภารกิจเสร็จจะสว่าง ถ้ายังจะมืดๆ)
-                  GestureDetector(
-                    onTap: () {
-                      // ถ้าต้องการให้กดแล้วไปหน้าแชร์รูป
-                      // if (isAllDone) Navigator.push(context, MaterialPageRoute(builder: (_) => const ShareScreen()));
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isAllDone ? AppColors.mahogany.withOpacity(0.3) : AppColors.mahogany.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isAllDone ? AppColors.gold.withOpacity(0.5) : Colors.white.withOpacity(0.05),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isAllDone
+                          ? AppColors.mahogany.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isAllDone
+                            ? AppColors.gold.withOpacity(0.5)
+                            : Colors.white.withOpacity(0.07),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Opacity(
+                          opacity: isAllDone ? 1.0 : 0.3,
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isAllDone
+                                  ? AppColors.gold.withOpacity(0.2)
+                                  : Colors.white.withOpacity(0.1),
+                            ),
+                            child: Icon(
+                              isAllDone ? Icons.workspace_premium : Icons.lock,
+                              color: isAllDone ? AppColors.gold : Colors.white54,
+                              size: 28,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          // ไอคอนเหรียญ
-                          Opacity(
-                            opacity: isAllDone ? 1.0 : 0.3,
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isAllDone ? AppColors.gold.withOpacity(0.2) : Colors.white.withOpacity(0.1),
-                              ),
-                              child: Icon(
-                                isAllDone ? Icons.workspace_premium : Icons.lock,
-                                color: isAllDone ? AppColors.gold : Colors.white54,
-                                size: 30,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          // ข้อความอธิบาย
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  translations['profile_mission_name'] ?? 'ภารกิจชุมชนริมน้ำจันทบูร',
-                                  style: TextStyle(
-                                    fontFamily: 'Noto Serif Thai',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: isAllDone ? Colors.white : Colors.white54,
-                                  ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                translations['profile_mission_name'] ?? 'ภารกิจชุมชนริมน้ำจันทบูร',
+                                style: TextStyle(
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isAllDone ? Colors.white : Colors.white54,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  isAllDone ? (translations['profile_completed_today'] ?? 'สำเร็จเมื่อ: วันนี้') : '${translations['profile_progress'] ?? 'ความคืบหน้า: '}$completedCount/$totalPlaces',
-                                  style: TextStyle(
-                                    fontFamily: 'Noto Serif Thai',
-                                    fontSize: 12,
-                                    color: isAllDone ? AppColors.sage : AppColors.amber,
-                                  ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isAllDone
+                                    ? (translations['profile_completed_today'] ?? 'สำเร็จแล้ว!')
+                                    : '${translations['profile_progress'] ?? 'ความคืบหน้า: '}$completedCount/$totalPlaces',
+                                style: TextStyle(
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontSize: 12,
+                                  color: isAllDone ? AppColors.sage : AppColors.amber,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          if (isAllDone)
-                            const Icon(Icons.chevron_right, color: AppColors.gold),
-                        ],
-                      ),
+                        ),
+                        if (isAllDone)
+                          const Icon(Icons.chevron_right, color: AppColors.gold),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
 
-            // ==========================================
-            // 4. เมนูตั้งค่าทั่วไป (General Settings)
-            // ==========================================
+            // ── Settings ───────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  _SettingsMenu(icon: Icons.person_outline, title: translations['profile_edit'] ?? 'แก้ไขข้อมูลส่วนตัว', onTap: () {}),
-                  _SettingsMenu(icon: Icons.notifications_none, title: translations['profile_notifications'] ?? 'การแจ้งเตือน', onTap: () {}),
-                  _SettingsMenu(icon: Icons.help_outline, title: translations['profile_help'] ?? 'ศูนย์ช่วยเหลือ', onTap: () {}),
-                  const Divider(color: Colors.white10, height: 32),
-                  _SettingsMenu(icon: Icons.logout, title: translations['profile_logout'] ?? 'ออกจากระบบ', isDestructive: true, onTap: () {}),
+                  _SettingsMenu(
+                    icon: Icons.person_outline,
+                    title: translations['profile_edit'] ?? 'แก้ไขข้อมูลส่วนตัว',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                    ).then((_) => ref.invalidate(userProfileProvider)),
+                  ),
+                  _SettingsMenu(
+                    icon: Icons.notifications_none,
+                    title: translations['profile_notifications'] ?? 'การแจ้งเตือน',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    ),
+                  ),
+                  _SettingsMenu(
+                    icon: Icons.help_outline,
+                    title: translations['profile_help'] ?? 'ศูนย์ช่วยเหลือ',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HelpScreen()),
+                    ),
+                  ),
+                  Divider(color: Colors.white.withOpacity(0.08), height: 32),
+                  _SettingsMenu(
+                    icon: Icons.logout,
+                    title: translations['profile_logout'] ?? 'ออกจากระบบ',
+                    isDestructive: true,
+                    onTap: () async {
+                      await ref.read(authProvider.notifier).logout();
+                      ref.invalidate(placesProvider);
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const LanguageScreenPremium()),
+                          (r) => false,
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 110),
           ],
         ),
       ),
@@ -230,10 +291,12 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-// ----------------------------------------------------
-// Widgets ย่อยสำหรับใช้ในหน้านี้
-// ----------------------------------------------------
+Widget _defaultAvatar() => Container(
+      color: AppColors.espresso,
+      child: const Icon(Icons.person, color: AppColors.gold, size: 40),
+    );
 
+// ── Stat Box ───────────────────────────────────────────────────
 class _StatBox extends StatelessWidget {
   final String title;
   final String value;
@@ -249,12 +312,12 @@ class _StatBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.03),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.gold.withOpacity(0.7), size: 24),
-            const SizedBox(height: 12),
+            Icon(icon, color: AppColors.gold.withOpacity(0.7), size: 22),
+            const SizedBox(height: 10),
             Text(
               value,
               style: const TextStyle(
@@ -269,9 +332,10 @@ class _StatBox extends StatelessWidget {
               title,
               style: TextStyle(
                 fontFamily: 'Noto Serif Thai',
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.5),
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.45),
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -280,6 +344,7 @@ class _StatBox extends StatelessWidget {
   }
 }
 
+// ── Settings Menu Item ─────────────────────────────────────────
 class _SettingsMenu extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -295,30 +360,54 @@ class _SettingsMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isDestructive ? Colors.red.withOpacity(0.1) : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          color: isDestructive ? Colors.redAccent : Colors.white70,
-          size: 20,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          splashColor: isDestructive
+              ? Colors.red.withOpacity(0.1)
+              : AppColors.gold.withOpacity(0.08),
+          highlightColor: Colors.transparent,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: isDestructive
+                        ? Colors.red.withOpacity(0.1)
+                        : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isDestructive ? Colors.redAccent : Colors.white70,
+                    size: 19,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Noto Serif Thai',
+                      fontSize: 14,
+                      color: isDestructive ? Colors.redAccent : Colors.white,
+                    ),
+                  ),
+                ),
+                if (!isDestructive)
+                  const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+              ],
+            ),
+          ),
         ),
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontFamily: 'Noto Serif Thai',
-          fontSize: 14,
-          color: isDestructive ? Colors.redAccent : Colors.white,
-        ),
-      ),
-      trailing: isDestructive ? null : const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
-      onTap: onTap,
     );
   }
 }

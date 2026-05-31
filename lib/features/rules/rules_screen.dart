@@ -28,8 +28,9 @@ class RulesScreen extends ConsumerWidget {
                     Text(
                       translations['rules_eyebrow'] ?? '',
                       style: const TextStyle(
-                        fontSize: 9,
-                        letterSpacing: 5,
+                        fontFamily: 'Noto Serif Thai',
+                        fontSize: 11,
+                        letterSpacing: 4,
                         color: AppColors.honey,
                       ),
                     ),
@@ -38,7 +39,8 @@ class RulesScreen extends ConsumerWidget {
                     Text(
                       translations['rules_title'] ?? '',
                       style: const TextStyle(
-                        fontSize: 19,
+                        fontFamily: 'Noto Serif Thai',
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: AppColors.amber,
                       ),
@@ -143,7 +145,8 @@ class RulesScreen extends ConsumerWidget {
                             child: RichText(
                               text: TextSpan(
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontSize: 13,
                                   height: 1.75,
                                   color: AppColors.sienna,
                                 ),
@@ -257,10 +260,10 @@ class _FlowStep extends StatelessWidget {
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 8,
-                    letterSpacing: 1,
-                    height: 1.3,
-                    color: AppColors.honey.withOpacity(0.4),
+                    fontFamily: 'Noto Serif Thai',
+                    fontSize: 11,
+                    height: 1.4,
+                    color: AppColors.honey.withOpacity(0.55),
                   ),
                 ),
               ],
@@ -342,7 +345,8 @@ class _RuleItem extends StatelessWidget {
             child: RichText(
               text: TextSpan(
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontFamily: 'Noto Serif Thai',
+                  fontSize: 14,
                   height: 1.8,
                   color: AppColors.mahogany,
                 ),

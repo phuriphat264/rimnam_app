@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 15+ enforces edge-to-edge for all activities. This opts UCrop out
+         so the crop toolbar is not hidden under the system status bar. -->
+    <style name="CropTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">#1C1208</item>
+        <item name="android:navigationBarColor">#1C1208</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>

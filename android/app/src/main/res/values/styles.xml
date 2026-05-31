@@ -15,4 +15,9 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Theme for UCropActivity — prevents status bar overlapping crop toolbar -->
+    <style name="CropTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">#1C1208</item>
+        <item name="android:navigationBarColor">#1C1208</item>
+    </style>
 </resources>

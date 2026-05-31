@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_colors.dart';
 import 'core/storage/storage_service.dart';
+import 'core/services/api_service.dart';
 import 'features/language/language_screen.dart';
+import 'features/main/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ปิดการโหลด SharedPreferences ชั่วคราว เพื่อทดสอบว่า Emulator ค้างที่ตรงนี้หรือไม่
-  // final prefs = await SharedPreferences.getInstance();
-  SharedPreferences.setMockInitialValues({});
+  // การตั้งค่าแคชแผนที่
+  await FMTCObjectBoxBackend().initialise();
+  await FMTCStore('chanthaburi').manage.create();
   final prefs = await SharedPreferences.getInstance();
+  final isLoggedIn = await ApiService().isLoggedIn();
 
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: const RimnamApp(),
+      child: RimnamApp(isLoggedIn: isLoggedIn),
     ),
   );
 }
 
 class RimnamApp extends StatelessWidget {
-  const RimnamApp({super.key});
+  final bool isLoggedIn;
+  const RimnamApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +63,7 @@ class RimnamApp extends StatelessWidget {
         useMaterial3: true,
       ),
       
-      // เริ่มต้น Flow ด้วยหน้าเลือกภาษา
-      home: const LanguageScreenPremium(),
+      home: isLoggedIn ? const MainScreen() : const LanguageScreenPremium(),
     );
   }
 }
