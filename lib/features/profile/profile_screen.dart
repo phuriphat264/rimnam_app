@@ -1,14 +1,19 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
 import '../../core/services/api_service.dart';
 import '../places/places_provider.dart';
+import '../places/place_model.dart';
 import '../auth/auth_provider.dart';
 import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
 import 'help_screen.dart';
 import '../language/language_screen.dart';
+import '../share/share_screen.dart';
+import '../history/history_screen.dart';
+import '../../core/widgets/place_icon.dart';
 
 final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
   try {
@@ -24,7 +29,8 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completedCount = ref.watch(completedCountProvider);
-    final totalPlaces = ref.watch(placesProvider).length;
+    final places = ref.watch(placesProvider);
+    final totalPlaces = places.length;
     final isAllDone = completedCount == totalPlaces;
     final translations = ref.watch(translationsProvider);
     final lang = ref.watch(languageProvider) ?? 'th';
@@ -53,9 +59,10 @@ class ProfileScreen extends ConsumerWidget {
         child: Column(
           children: [
             // ── User Info ──────────────────────────────────────
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
             Center(
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Container(
                     width: 96,
@@ -85,46 +92,48 @@ class ProfileScreen extends ConsumerWidget {
                         MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                       ).then((_) => ref.invalidate(userProfileProvider)),
                       child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
                           color: AppColors.gold,
                           shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.ink, width: 2),
                         ),
-                        child: const Icon(Icons.edit, size: 13, color: AppColors.ink),
+                        child: const Icon(Icons.edit, size: 12, color: AppColors.ink),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
             // ชื่อ
             userAsync.isLoading
                 ? const SizedBox(
-                    height: 22,
-                    width: 22,
+                    height: 24,
+                    width: 24,
                     child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
                   )
                 : Text(
                     user?['display_name'] ?? translations['profile_name'] ?? 'นักสำรวจนิรนาม',
                     style: const TextStyle(
                       fontFamily: 'Noto Serif Thai',
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
             const SizedBox(height: 4),
-            Text(
-              user?['email'] ?? '',
-              style: TextStyle(
-                fontFamily: 'Noto Serif Thai',
-                fontSize: 12,
-                color: Colors.white.withOpacity(0.45),
+            if ((user?['email'] ?? '').isNotEmpty)
+              Text(
+                user?['email'] ?? '',
+                style: TextStyle(
+                  fontFamily: 'Noto Serif Thai',
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.40),
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 28),
 
             // ── Travel Stats ───────────────────────────────────
             Padding(
@@ -145,7 +154,7 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
 
             // ── Stamp Book ─────────────────────────────────────
             Padding(
@@ -163,7 +172,13 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Container(
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const HistoryScreen()),
+                    ),
+                    child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -225,15 +240,102 @@ class ProfileScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (isAllDone)
-                          const Icon(Icons.chevron_right, color: AppColors.gold),
+                        const Icon(Icons.chevron_right,
+                            color: AppColors.gold),
                       ],
                     ),
+                  ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
+
+            // ── Journey Photos ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        translations['profile_journey_photos'] ?? 'ภาพการเดินทาง',
+                        style: const TextStyle(
+                          fontFamily: 'Noto Serif Thai',
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.gold,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ShareScreen()),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: AppColors.gold.withOpacity(0.35)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.share,
+                                  color: AppColors.gold, size: 14),
+                              const SizedBox(width: 5),
+                              Text(
+                                translations['share_to'] ?? 'แชร์',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontSize: 12,
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1.0,
+                    ),
+                    itemCount: places.length,
+                    itemBuilder: (_, i) {
+                      final place = places[i];
+                      final isDone = place.status == PlaceStatus.done;
+                      final hasPhoto = place.capturedPhotoPath != null;
+                      return _JourneyPhotoCell(
+                        place: place,
+                        isDone: isDone,
+                        hasPhoto: hasPhoto,
+                        index: i,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Divider(color: Colors.white.withOpacity(0.08), height: 1),
+            ),
 
             // ── Settings ───────────────────────────────────────
             Padding(
@@ -247,6 +349,12 @@ class ProfileScreen extends ConsumerWidget {
                       context,
                       MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                     ).then((_) => ref.invalidate(userProfileProvider)),
+                  ),
+                  _SettingsMenu(
+                    icon: Icons.language,
+                    title: translations['settings_language'] ?? 'เปลี่ยนภาษา',
+                    trailing: _LangBadge(lang: lang),
+                    onTap: () => _showLanguagePicker(context, ref, lang),
                   ),
                   _SettingsMenu(
                     icon: Icons.notifications_none,
@@ -283,10 +391,176 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 110),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Language picker bottom sheet ───────────────────────────────
+void _showLanguagePicker(BuildContext context, WidgetRef ref, String currentLang) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _LanguagePickerSheet(currentLang: currentLang, ref: ref),
+  );
+}
+
+class _LanguagePickerSheet extends StatelessWidget {
+  final String currentLang;
+  final WidgetRef ref;
+
+  const _LanguagePickerSheet({required this.currentLang, required this.ref});
+
+  static const _langs = [
+    ('th', 'ภาษาไทย', 'THAI', '🇹🇭'),
+    ('zh', '中文', 'CHINESE', '🇨🇳'),
+    ('en', 'English', 'ENGLISH', '🇬🇧'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.espresso,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                const Icon(Icons.language, color: AppColors.gold, size: 18),
+                const SizedBox(width: 10),
+                const Text(
+                  'เลือกภาษา  ·  LANGUAGE',
+                  style: TextStyle(
+                    fontFamily: 'Cormorant Garamond',
+                    fontSize: 13,
+                    letterSpacing: 2,
+                    color: AppColors.amber,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._langs.map((item) {
+            final (code, name, subtitle, flag) = item;
+            final isSelected = currentLang == code;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  splashColor: AppColors.gold.withOpacity(0.1),
+                  highlightColor: Colors.transparent,
+                  onTap: () {
+                    ref.read(languageProvider.notifier).state = code;
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.gold.withOpacity(0.12)
+                          : Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.gold.withOpacity(0.5)
+                            : Colors.white.withOpacity(0.07),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(flag, style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  fontFamily: 'Noto Serif Thai',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected ? AppColors.gold : Colors.white,
+                                ),
+                              ),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontFamily: 'Cormorant Garamond',
+                                  fontSize: 11,
+                                  letterSpacing: 2,
+                                  color: Colors.white.withOpacity(0.35),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(Icons.check_circle,
+                              color: AppColors.gold, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ],
+      ),
+    );
+  }
+}
+
+// แสดง badge ภาษาปัจจุบันข้างๆ ปุ่มเปลี่ยนภาษา
+class _LangBadge extends StatelessWidget {
+  final String lang;
+  const _LangBadge({required this.lang});
+
+  static const _flags = {'th': '🇹🇭', 'zh': '🇨🇳', 'en': '🇬🇧'};
+  static const _labels = {'th': 'ไทย', 'zh': '中文', 'en': 'EN'};
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(_flags[lang] ?? '🌐', style: const TextStyle(fontSize: 14)),
+        const SizedBox(width: 5),
+        Text(
+          _labels[lang] ?? lang,
+          style: const TextStyle(
+            fontFamily: 'Noto Serif Thai',
+            fontSize: 12,
+            color: AppColors.amber,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(Icons.chevron_right, color: Colors.white24, size: 18),
+      ],
     );
   }
 }
@@ -344,18 +618,130 @@ class _StatBox extends StatelessWidget {
   }
 }
 
+// ── Journey Photo Cell ─────────────────────────────────────────
+class _JourneyPhotoCell extends StatelessWidget {
+  final Place place;
+  final bool isDone;
+  final bool hasPhoto;
+  final int index;
+
+  const _JourneyPhotoCell({
+    required this.place,
+    required this.isDone,
+    required this.hasPhoto,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── รูปภาพหลัก ──
+          if (hasPhoto && isDone)
+            Image.file(
+              File(place.capturedPhotoPath!),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _iconPlaceholder(isDone),
+            )
+          else
+            _iconPlaceholder(isDone),
+
+          // ── gradient + ชื่อสถานที่ สำหรับ done ──
+          if (isDone)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.72),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Text(
+                  place.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Noto Serif Thai',
+                    fontSize: 9,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+
+          // ── check badge ──
+          if (isDone)
+            const Positioned(
+              top: 4,
+              right: 4,
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 8,
+                child:
+                    Icon(Icons.check_circle, color: AppColors.sage, size: 14),
+              ),
+            ),
+
+          // ── border ──
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDone
+                    ? AppColors.gold.withOpacity(0.4)
+                    : Colors.white.withOpacity(0.06),
+                width: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconPlaceholder(bool isDone) {
+    return Container(
+      color: AppColors.espresso,
+      child: Center(
+        child: PlaceIcon(
+          placeId: place.id,
+          size: 36,
+          color: isDone
+              ? AppColors.amber.withOpacity(0.7)
+              : AppColors.mahogany.withOpacity(0.4),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Settings Menu Item ─────────────────────────────────────────
 class _SettingsMenu extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
   final bool isDestructive;
+  final Widget? trailing;
 
   const _SettingsMenu({
     required this.icon,
     required this.title,
     required this.onTap,
     this.isDestructive = false,
+    this.trailing,
   });
 
   @override
@@ -401,8 +787,12 @@ class _SettingsMenu extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!isDestructive)
-                  const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+                // ถ้ามี trailing ใช้ trailing แทน chevron
+                trailing ??
+                    (isDestructive
+                        ? const SizedBox.shrink()
+                        : const Icon(Icons.chevron_right,
+                            color: Colors.white24, size: 20)),
               ],
             ),
           ),

@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
+import '../places/places_provider.dart';
 import '../share/share_screen.dart';
 import '../main/main_screen.dart';
 
@@ -33,6 +35,7 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> with Single
   @override
   Widget build(BuildContext context) {
     final translations = ref.watch(translationsProvider);
+    final places = ref.watch(placesProvider);
     return Scaffold(
       backgroundColor: AppColors.ink, // ใช้ AppColors.ink เป็นพื้นหลัง
       body: Stack(
@@ -149,50 +152,62 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> with Single
                         ),
                         const SizedBox(height: 32),
 
-                        // กล่องติ๊กถูก 6 กล่อง
+                        // กล่อง 6 ช่อง: แสดงรูปจริงถ้ามี
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(6, (index) {
+                          children: places.take(6).map((place) {
+                            final hasPhoto = place.capturedPhotoPath != null;
                             return Container(
                               width: 46,
                               height: 46,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
+                              child: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppColors.mahogany.withOpacity(0.6),
-                                    AppColors.ink.withOpacity(0.8),
-                                  ],
-                                ),
-                                border: Border.all(
-                                  color: AppColors.gold.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: Container(
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.white,
-                                      ),
-                                      child: const Icon(
-                                        Icons.check_circle,
-                                        color: AppColors.sage, // ใช้ AppColors.sage สำหรับสีเขียว
-                                        size: 14,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    hasPhoto
+                                        ? Image.file(
+                                            File(place.capturedPhotoPath!),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                Image.asset(place.imageUrl,
+                                                    fit: BoxFit.cover),
+                                          )
+                                        : Image.asset(place.imageUrl,
+                                            fit: BoxFit.cover),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            AppColors.mahogany.withOpacity(0.15),
+                                            Colors.transparent,
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.gold.withOpacity(0.4),
+                                          width: 1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const Positioned(
+                                      top: 2,
+                                      right: 2,
+                                      child: CircleAvatar(
+                                        backgroundColor: Colors.white,
+                                        radius: 7,
+                                        child: Icon(Icons.check_circle,
+                                            color: AppColors.sage, size: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
-                          }),
+                          }).toList(),
                         ),
                         const SizedBox(height: 32),
 

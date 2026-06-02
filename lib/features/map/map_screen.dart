@@ -14,6 +14,7 @@ import 'map_provider.dart';
 import '../places/place_model.dart';
 import '../places/place_detail_screen.dart';
 import '../camera/camera_screen.dart';
+import '../../core/widgets/fullscreen_image_viewer.dart';
 
 // Nav bar total height: 70px container + 32px bottom padding
 const _kNavBarHeight = 102.0;
@@ -214,7 +215,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       minZoom: 14,
       maxZoom: 18,
       options: TileLayer(
-        urlTemplate: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        urlTemplate:
+            'https://api.maptiler.com/maps/streets-v2-dark/{z}/{x}/{y}.png?key=${const String.fromEnvironment('MAPTILER_API_KEY')}',
         userAgentPackageName: 'com.rimnam.chanthabun',
       ),
     );
@@ -366,8 +368,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
               isSelected: place.id == selectedId,
               onTap: () {
                 if (isNavigating) return;
-                ref.read(selectedMapPlaceIdProvider.notifier).state =
-                    place.id == selectedId ? null : place.id;
+                final newId = place.id == selectedId ? null : place.id;
+                ref.read(selectedMapPlaceIdProvider.notifier).state = newId;
+                if (newId != null) {
+                  ref.read(routePointsProvider.notifier).state = const [];
+                  ref.read(routeStepsProvider.notifier).state = const [];
+                  _mapController.move(stationCoordinates[newId]!, 16.5);
+                }
               },
             ),
           ),
@@ -425,6 +432,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
               initialZoom: initialZoom,
               minZoom: 13.0,
               maxZoom: 19.0,
+              cameraConstraint: CameraConstraint.containCenter(
+                bounds: LatLngBounds(
+                  const LatLng(12.50, 102.00),
+                  const LatLng(12.72, 102.22),
+                ),
+              ),
               onTap: (_, __) {
                 if (ref.read(isNavigatingProvider)) return;
                 ref.read(selectedMapPlaceIdProvider.notifier).state = null;
@@ -435,7 +448,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             children: [
               TileLayer(
                 urlTemplate:
-                    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                    'https://api.maptiler.com/maps/streets-v2-dark/{z}/{x}/{y}.png?key=${const String.fromEnvironment('MAPTILER_API_KEY')}',
                 userAgentPackageName: 'com.rimnam.chanthabun',
                 maxZoom: 19,
                 tileProvider: _tileProvider,
@@ -451,7 +464,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     ),
                   ],
                 ),
-              MarkerLayer(markers: markers, rotate: false),
+              MarkerLayer(markers: markers, rotate: true),
             ],
           ),
 
@@ -480,41 +493,59 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ),
 
           // ====== Bottom card เมื่อเลือกสถานที่ ======
-          if (selectedId != null && !isNavigating)
-            Positioned(
-              left: 0, right: 0,
-              bottom: _kNavBarHeight + 8,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _MapBottomCard(
-                      key: ValueKey(selectedId),
-                      place: places.firstWhere((p) => p.id == selectedId),
-                      userPosition: userPosition,
-                      translations: translations,
-                      isNavigating: isNavigating,
-                      onClose: () {
-                        ref.read(selectedMapPlaceIdProvider.notifier).state = null;
-                        _stopNavigation();
-                      },
-                      onNavigate: () async {
-                        if (isNavigating) { _stopNavigation(); return; }
-                        if (userPosition == null) {
-                          _showSnackBar(translations['map_need_gps_nav'] ?? 'กรุณาเปิด GPS ก่อนนำทาง', isError: true);
-                          return;
-                        }
-                        final userLatLng = LatLng(userPosition.latitude, userPosition.longitude);
-                        ref.read(isNavigatingProvider.notifier).state = true;
-                        _mapController.move(userLatLng, 17.0);
-                        unawaited(_loadRoute(userLatLng, selectedId));
-                      },
-                    ),
+          Positioned(
+            left: 0, right: 0,
+            bottom: _kNavBarHeight + 8,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 320),
+                    reverseDuration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0, 1),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ));
+                      return SlideTransition(
+                        position: slide,
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: (selectedId != null && !isNavigating)
+                      ? _MapBottomCard(
+                          key: ValueKey(selectedId),
+                          place: places.firstWhere((p) => p.id == selectedId),
+                          userPosition: userPosition,
+                          translations: translations,
+                          isNavigating: isNavigating,
+                          onClose: () {
+                            ref.read(selectedMapPlaceIdProvider.notifier).state = null;
+                            _stopNavigation();
+                          },
+                          onNavigate: () async {
+                            if (isNavigating) { _stopNavigation(); return; }
+                            if (userPosition == null) {
+                              _showSnackBar(translations['map_need_gps_nav'] ?? 'กรุณาเปิด GPS ก่อนนำทาง', isError: true);
+                              return;
+                            }
+                            final userLatLng = LatLng(userPosition.latitude, userPosition.longitude);
+                            ref.read(isNavigatingProvider.notifier).state = true;
+                            _mapController.move(userLatLng, 17.0);
+                            unawaited(_loadRoute(userLatLng, selectedId));
+                          },
+                        )
+                      : const SizedBox.shrink(key: ValueKey('empty')),
                   ),
                 ),
               ),
             ),
+          ),
 
           // ====== Zoom + my_location — กลางขวา (ซ่อนเมื่อมี card) ======
           Positioned(
@@ -878,22 +909,14 @@ class _MapBottomCard extends ConsumerWidget {
     final isDone = place.status == PlaceStatus.done;
 
     final bool noGps = userPosition == null;
-    final bool isTooFar = !noGps && dist != null && dist > 50;
+    final bool isTooFar = !noGps && dist != null && dist > maxDistanceForStation(place.id);
     final bool canShoot = !isDone && !noGps && !isTooFar;
 
     final String distanceText = dist != null
         ? '${formatDistance(dist)} ${translations['map_straight_line'] ?? '(เส้นตรง)'}'
         : place.location;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutQuart,
-      builder: (context, value, child) => Transform.translate(
-        offset: Offset(0, 220 * (1 - value)),
-        child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
-      ),
-      child: ClipRRect(
+    return ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -917,19 +940,44 @@ class _MapBottomCard extends ConsumerWidget {
                 // ====== Top row: ภาพ + ข้อมูล + ปุ่มปิด ======
                 Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        place.imageUrl,
-                        width: 66,
-                        height: 66,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 66,
-                          height: 66,
-                          color: AppColors.mahogany,
-                          child: const Icon(Icons.image_not_supported,
-                              color: AppColors.cream),
+                    GestureDetector(
+                      onTap: () {
+                        final imgs = place.galleryImages.isNotEmpty
+                            ? place.galleryImages
+                            : [place.imageUrl];
+                        FullScreenImageViewer.show(context, imgs);
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            Image.asset(
+                              place.imageUrl,
+                              width: 66,
+                              height: 66,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 66,
+                                height: 66,
+                                color: AppColors.mahogany,
+                                child: const Icon(Icons.image_not_supported,
+                                    color: AppColors.cream),
+                              ),
+                            ),
+                            Positioned(
+                              right: 3,
+                              bottom: 3,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.55),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Icon(Icons.photo_library,
+                                    color: Colors.white, size: 10),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1027,28 +1075,33 @@ class _MapBottomCard extends ConsumerWidget {
                     Expanded(
                       child: _CardActionButton(
                         icon: isDone
-                            ? Icons.check_circle_outline_rounded
+                            ? Icons.photo_library_outlined
                             : noGps
                                 ? Icons.gps_off_rounded
                                 : isTooFar
                                     ? Icons.location_searching
                                     : Icons.camera_alt_rounded,
                         label: isDone
-                            ? (translations['map_done'] ?? 'สำเร็จแล้ว')
+                            ? (translations['map_view_photos'] ?? 'ดูรูปภาพ')
                             : noGps
                                 ? (translations['map_camera_need_gps'] ?? 'ต้องการ GPS')
                                 : isTooFar
                                     ? '${translations['map_far_label'] ?? 'ห่าง'} ${formatDistance(dist)}'
                                     : (translations['take_photo'] ?? 'ถ่ายภาพ'),
                         color: isDone
-                            ? Colors.greenAccent.shade200
+                            ? AppColors.gold
                             : noGps
                                 ? AppColors.sienna
                                 : isTooFar
                                     ? AppColors.honey
                                     : AppColors.gold,
                         onTap: isDone
-                            ? null
+                            ? () {
+                                final imgs = place.galleryImages.isNotEmpty
+                                    ? place.galleryImages
+                                    : [place.imageUrl];
+                                FullScreenImageViewer.show(context, imgs);
+                              }
                             : canShoot
                                 ? () => Navigator.push(
                                       context,
@@ -1117,7 +1170,6 @@ class _MapBottomCard extends ConsumerWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

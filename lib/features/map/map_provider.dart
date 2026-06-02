@@ -11,15 +11,24 @@ const _orsApiKey = String.fromEnvironment('ORS_API_KEY');
 // พิกัด GPS จริงของ 6 สถานที่ในชุมชนริมน้ำจันทบูร
 // ============================================================
 const Map<String, LatLng> stationCoordinates = {
-  '1': LatLng(12.6137, 102.1129),
-  '2': LatLng(12.6124, 102.1138),
-  '3': LatLng(12.6112, 102.1142),
-  '4': LatLng(12.6100, 102.1144),
-  '5': LatLng(12.6092, 102.1187),
-  '6': LatLng(12.6082, 102.1145),
+  '1': LatLng(12.61370,  102.11315),   // วัดโบสถ์เมือง         (OSM verified)
+  '2': LatLng(12.61267,  102.11326),   // ศาลเจ้าตั้วเล่าเอี๊ย   (OSM verified)
+  '3': LatLng(12.61241,  102.11385),   // บ้านหลวงราชไมตรี       (OSM verified)
+  '4': LatLng(12.60965,  102.11502),   // โรงเจเทียงเช็งตึ๊ง      (user GPS — ยืนยันด้วย right-click)
+  '5': LatLng(12.60871,  102.11597),   // ศูนย์เรียนรู้ประจำชุมชน  (OSM Learning House)
+  '6': LatLng(12.60924,  102.11865),   // อาสนวิหารพระนางมารีอา  (OSM verified)
 };
 
-const LatLng chanthaburiCenter = LatLng(12.6108, 102.1148);
+// รัศมีสูงสุดที่อนุญาตให้ถ่ายรูปยืนยันภารกิจ (เมตร)
+const Map<String, double> stationMaxDistance = {
+  '6': 200.0, // อาสนวิหารฯ — พื้นที่กว้าง
+};
+const double _defaultMaxDistance = 50.0;
+
+double maxDistanceForStation(String placeId) =>
+    stationMaxDistance[placeId] ?? _defaultMaxDistance;
+
+const LatLng chanthaburiCenter = LatLng(12.6112, 102.1153);
 const double initialZoom = 15.5;
 
 // ============================================================
@@ -258,17 +267,23 @@ String formatDistance(double meters) {
 }
 
 // ============================================================
-// OpenRouteService walking route
+// OpenRouteService — auto-switch walking/driving by distance
 // ============================================================
-// ORS driving-car — เส้นทางรถยนต์ที่ใกล้ที่สุด
+// < 500 ม. → foot-walking, ≥ 500 ม. → driving-car
 Future<RouteResult> fetchOrsRoute(LatLng userPos, String targetId) async {
   if (_orsApiKey.isEmpty) throw Exception('ORS_API_KEY not set');
 
   final target = stationCoordinates[targetId];
   if (target == null) return RouteResult.empty;
 
+  final distToTarget = Geolocator.distanceBetween(
+    userPos.latitude, userPos.longitude,
+    target.latitude, target.longitude,
+  );
+  final profile = distToTarget < 500 ? 'foot-walking' : 'driving-car';
+
   final url = Uri.parse(
-    'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+    'https://api.openrouteservice.org/v2/directions/$profile/geojson',
   );
 
   final response = await http.post(

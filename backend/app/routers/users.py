@@ -8,7 +8,7 @@ from app.models.photo import Photo
 from app.schemas.user import UserPublic, UserUpdate, ChangePasswordRequest, SetPasswordRequest
 from app.core.security import verify_password, hash_password
 from app.core.dependencies import get_current_user
-from app.services.file_service import save_photo, delete_photo_file
+from app.services.file_service import save_avatar_photo, delete_photo_file
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -38,11 +38,11 @@ async def upload_avatar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    stored_filename, url, size = await save_photo(file, current_user.id)
+    stored_filename, url, size = await save_avatar_photo(file, current_user.id)
 
     # ลบรูปเก่าถ้ามี
-    if current_user.avatar_url and current_user.avatar_url.startswith("/uploads"):
-        await delete_photo_file(current_user.avatar_url, current_user.id)
+    if current_user.avatar_url:
+        await delete_photo_file(current_user.avatar_url)
 
     await db.execute(update(User).where(User.id == current_user.id).values(avatar_url=url))
     db.add(Photo(

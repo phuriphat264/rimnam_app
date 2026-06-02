@@ -27,57 +27,72 @@ class PlacesNotifier extends StateNotifier<List<Place>> {
   final SharedPreferences _prefs;
   final _api = ApiService();
   static const _completedKey = 'completed_places';
+  static const _photoKeyPrefix = 'photo_path_';
 
   PlacesNotifier(this._prefs) : super(_buildInitialState(_prefs));
 
   static List<Place> _buildInitialState(SharedPreferences prefs) {
     final completedIds = prefs.getStringList(_completedKey) ?? [];
-    return _applyIds(completedIds);
-  }
-
-  static List<Place> _applyIds(List<String> completedIds) {
     return mockPlaces.map((p) {
-      if (completedIds.contains(p.id)) return p.copyWith(status: PlaceStatus.done);
-      return p;
+      final status = completedIds.contains(p.id) ? PlaceStatus.done : p.status;
+      final photoPath = prefs.getString('$_photoKeyPrefix${p.id}');
+      return p.copyWith(status: status, capturedPhotoPath: photoPath);
     }).toList();
   }
 
-  // sync ความคืบหน้าจาก server (เรียกหลัง login)
   Future<void> syncFromServer() async {
     try {
       final data = await _api.get('/missions/progress');
       final ids = List<String>.from(data['completed_place_ids'] ?? []);
       _applyCompletedIds(ids);
-    } catch (_) {
-      // offline: ใช้ local data ต่อ
+    } catch (_) {}
+  }
+
+  void _applyCompletedIds(List<String> serverIds) {
+    // Merge server + local — ไม่ลบ progress ที่บันทึกไว้แล้ว
+    // กรณี server ส่ง [] มา (JWT หมดอายุ / backend ไม่มีข้อมูล) จะไม่ reset local
+    final localIds = _prefs.getStringList(_completedKey) ?? [];
+    final mergedIds = <String>{...localIds, ...serverIds}.toList();
+
+    final newList = mockPlaces.map((p) {
+      final status = mergedIds.contains(p.id) ? PlaceStatus.done : p.status;
+      final photoPath = _prefs.getString('$_photoKeyPrefix${p.id}');
+      return p.copyWith(status: status, capturedPhotoPath: photoPath);
+    }).toList();
+    state = newList;
+    if (mergedIds.isNotEmpty) {
+      _prefs.setStringList(_completedKey, mergedIds);
     }
   }
 
-  void _applyCompletedIds(List<String> completedIds) {
-    final newList = mockPlaces.map((p) {
-      if (completedIds.contains(p.id)) return p.copyWith(status: PlaceStatus.done);
-      return p;
-    }).toList();
-    state = newList;
-    _prefs.setStringList(_completedKey, completedIds);
-  }
-
-  Future<void> completeMission(String id, {String? photoUrl, double? lat, double? lng}) async {
-    // อัพเดท local state ทันที
+  Future<void> completeMission(
+    String id, {
+    String? photoUrl,
+    String? localPhotoPath,
+    double? lat,
+    double? lng,
+  }) async {
     final index = state.indexWhere((p) => p.id == id);
     if (index == -1) return;
 
     final newList = List<Place>.from(state);
-    newList[index] = newList[index].copyWith(status: PlaceStatus.done);
-    if (index + 1 < newList.length && newList[index + 1].status == PlaceStatus.locked) {
+    newList[index] = newList[index].copyWith(
+      status: PlaceStatus.done,
+      capturedPhotoPath: localPhotoPath,
+    );
+    if (index + 1 < newList.length &&
+        newList[index + 1].status == PlaceStatus.locked) {
       newList[index + 1] = newList[index + 1].copyWith(status: PlaceStatus.active);
     }
     state = newList;
 
-    final completedIds = state.where((p) => p.status == PlaceStatus.done).map((p) => p.id).toList();
+    final completedIds =
+        state.where((p) => p.status == PlaceStatus.done).map((p) => p.id).toList();
     _prefs.setStringList(_completedKey, completedIds);
+    if (localPhotoPath != null) {
+      _prefs.setString('$_photoKeyPrefix$id', localPhotoPath);
+    }
 
-    // sync ไป server (background)
     try {
       await _api.post('/missions/complete', {
         'place_id': id,
@@ -85,18 +100,19 @@ class PlacesNotifier extends StateNotifier<List<Place>> {
         if (lng != null) 'longitude': lng,
         if (photoUrl != null) 'photo_url': photoUrl,
       });
-    } catch (_) {
-      // ไม่ออนไลน์: local state บันทึกแล้ว จะ sync ครั้งหน้าที่ login
-    }
+    } catch (_) {}
   }
 
   void resetProgress() {
-    state = [
-      for (int i = 0; i < state.length; i++)
-        state[i].copyWith(status: i == 0 ? PlaceStatus.active : PlaceStatus.locked)
-    ];
+    for (final p in state) {
+      _prefs.remove('$_photoKeyPrefix${p.id}');
+    }
+    state = mockPlaces.asMap().entries.map((e) {
+      return e.value.copyWith(
+        status: e.key == 0 ? PlaceStatus.active : PlaceStatus.locked,
+      );
+    }).toList();
     _prefs.remove(_completedKey);
-    // reset บน server ด้วย (background)
     _api.delete('/missions/reset').catchError((_) {});
   }
 }

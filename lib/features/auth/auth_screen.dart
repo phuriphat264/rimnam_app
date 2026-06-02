@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
@@ -30,7 +31,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submit(AuthState authState) async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     final password = _passwordCtrl.text;
     final isLogin = authState.mode == AuthMode.login;
 
@@ -224,6 +225,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     icon: Icons.email_outlined,
                     controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,
+                    inputFormatters: [_LowercaseFormatter()],
                   ),
                   const SizedBox(height: 14),
 
@@ -466,7 +468,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
   void _clearError() => setState(() => _errorMsg = null);
 
   Future<void> _sendOtp() async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     if (email.isEmpty) {
       _setError('กรุณากรอก Email');
       return;
@@ -497,7 +499,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
     _clearError();
     setState(() => _isLoading = true);
     final err = await ref.read(authProvider.notifier).resetPassword(
-          email: _emailCtrl.text.trim(),
+          email: _emailCtrl.text.trim().toLowerCase(),
           otp: otp,
           newPassword: newPass,
         );
@@ -596,6 +598,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
                 icon: Icons.email_outlined,
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
+                inputFormatters: [_LowercaseFormatter()],
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -753,6 +756,7 @@ class _FormField extends StatelessWidget {
   final bool isPassword;
   final TextEditingController controller;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _FormField({
     required this.hint,
@@ -760,6 +764,7 @@ class _FormField extends StatelessWidget {
     required this.controller,
     this.isPassword = false,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   @override
@@ -782,6 +787,7 @@ class _FormField extends StatelessWidget {
               controller: controller,
               obscureText: isPassword,
               keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
               style: const TextStyle(
                 fontFamily: 'Noto Serif Thai',
                 fontSize: 13.5,
@@ -803,5 +809,13 @@ class _FormField extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _LowercaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(text: newValue.text.toLowerCase());
   }
 }

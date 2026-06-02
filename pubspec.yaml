@@ -31,6 +31,8 @@ dependencies:
   http_parser: ^4.0.2             # MediaType สำหรับ upload content-type
   flutter_secure_storage: ^9.2.2
   google_sign_in: ^6.2.2
+  path_provider: ^2.1.1
+  flutter_svg: ^2.0.10
 
   # --- UI & Design ---
   google_fonts: ^6.1.0            # สำหรับโหลด Noto Serif Thai และ Playfair Display อัตโนมัติ
@@ -55,6 +57,10 @@ flutter:
   assets:
      - assets/images/
      - assets/icons/
+     - assets/icons/facebook.svg
+     - assets/icons/instagram.svg
+     - assets/icons/line.svg
+     - assets/icons/x.svg
 
   fonts:
      - family: Noto Serif Thai

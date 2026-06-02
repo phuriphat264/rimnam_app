@@ -1,15 +1,14 @@
 import uuid
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select
 
 from app.database import get_db
 from app.models.user import User
 from app.models.photo import Photo
-from app.models.mission import MissionCompletion
 from app.schemas.photo import PhotoOut, PhotoList
 from app.core.dependencies import get_current_user
-from app.services.file_service import save_photo, delete_photo_file
+from app.services.file_service import save_mission_photo, delete_photo_file
 
 router = APIRouter(prefix="/photos", tags=["Photos"])
 
@@ -23,10 +22,11 @@ async def upload_photo(
 ):
     """
     อัพโหลดรูปภาพที่ถ่ายจากกล้องในแอพ
-    place_id: รหัสสถานที่ "1"-"6" (ส่งมาด้วยถ้าถ่ายที่สถานที่นั้น)
-    ส่ง multipart/form-data: file + place_id
+    place_id: รหัสสถานที่ "1"-"6"  (ส่ง multipart/form-data: file + place_id)
+    รูปจะเก็บใน Cloudflare R2: missions/{place_id}/{user_id}_{uuid}.jpg
     """
-    stored_filename, url, size = await save_photo(file, current_user.id, place_id)
+    actual_place_id = place_id or "general"
+    stored_filename, url, size = await save_mission_photo(file, current_user.id, actual_place_id)
 
     photo = Photo(
         user_id=current_user.id,
@@ -37,19 +37,6 @@ async def upload_photo(
         size_bytes=size,
     )
     db.add(photo)
-
-    # ถ้า place_id ส่งมา ให้อัพเดท photo_url ใน mission_completion ด้วย
-    if place_id:
-        result = await db.execute(
-            select(MissionCompletion).where(
-                MissionCompletion.user_id == current_user.id,
-                MissionCompletion.place_id == place_id,
-            )
-        )
-        mission = result.scalar_one_or_none()
-        if mission:
-            mission.photo_url = url
-
     await db.commit()
     await db.refresh(photo)
     return photo
@@ -80,6 +67,6 @@ async def delete_my_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="ไม่พบรูปภาพ")
 
-    await delete_photo_file(photo.url, current_user.id)
+    await delete_photo_file(photo.url)
     await db.delete(photo)
     await db.commit()
