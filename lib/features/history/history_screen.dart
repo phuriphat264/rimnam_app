@@ -546,7 +546,7 @@ class _RewardCard extends StatelessWidget {
                     children: [
                       Text(
                         translations['completion_reward_place'] ??
-                            'ศูนย์การเรียนรู้\nชุมชนริมน้ำจันทบูร',
+                            'บ้านเลขที่ 69 ขุนอนุสรสมบัติ\nบ้านเรียนรู้ชุมชน ริมน้ำจันทบูร',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -557,7 +557,7 @@ class _RewardCard extends StatelessWidget {
                       ),
                       Text(
                         translations['completion_reward_note'] ??
-                            'บ้านเลขที่ 69 — แสดงหน้าจอนี้แก่เจ้าหน้าที่',
+                            'Community Learning House - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
                         style: TextStyle(
                           fontSize: 10,
                           color: AppColors.cream.withOpacity(0.55),

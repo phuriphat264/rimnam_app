@@ -62,7 +62,7 @@ class PlacesScreen extends ConsumerWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PlaceDetailScreen(place: place, index: index),
+                            builder: (context) => PlaceDetailScreen(place: place, index: index + 1),
                           ),
                         );
                       },

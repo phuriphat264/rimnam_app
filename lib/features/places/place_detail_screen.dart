@@ -62,7 +62,7 @@ Widget _buildLongDescription(String text) {
       final content = line.substring(1).trim();
       final colonIdx = content.indexOf(':');
       // Bold the label before the first colon (e.g. "จุดเริ่มต้น:")
-      final hasLabel = colonIdx > 0 && colonIdx <= 20;
+      final hasLabel = colonIdx > 0 && colonIdx <= 50;
 
       widgets.add(Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 3),
@@ -129,9 +129,12 @@ class PlaceDetailScreen extends ConsumerWidget {
           // ==========================================
           GestureDetector(
             onTap: () {
-              final imgs = place.galleryImages.isNotEmpty
+              final gallery = place.galleryImages.isNotEmpty
                   ? place.galleryImages
                   : [place.imageUrl];
+              final imgs = place.capturedPhotoPath != null
+                  ? [place.capturedPhotoPath!, ...gallery]
+                  : gallery;
               FullScreenImageViewer.show(context, imgs);
             },
             child: SizedBox(
@@ -255,36 +258,60 @@ class PlaceDetailScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: BackdropFilter(
-                                filter:
-                                    ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.gold.withOpacity(0.22),
-                                    border: Border.all(
-                                        color:
-                                            AppColors.gold.withOpacity(0.42)),
-                                    borderRadius: BorderRadius.circular(22),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  (translations['spot_progress'] ??
+                                          'SPOT · {index} OF {total}')
+                                      .replaceAll('{index}',
+                                          index.toString().padLeft(2, '0'))
+                                      .replaceAll('{total}',
+                                          totalPlaces.toString().padLeft(2, '0')),
+                                  style: TextStyle(
+                                    fontFamily: 'Cormorant Garamond',
+                                    fontSize: 9,
+                                    letterSpacing: 3,
+                                    color: AppColors.amber.withOpacity(0.7),
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  child: Text(
-                                    (translations['mission_progress'] ??
-                                            'MISSION {index} / {total}')
-                                        .replaceAll('{index}', '$index')
-                                        .replaceAll('{total}', '$totalPlaces'),
-                                    style: const TextStyle(
-                                      fontFamily: 'Cormorant Garamond',
-                                      fontSize: 10,
-                                      letterSpacing: 2,
-                                      color: AppColors.amber,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                const SizedBox(height: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(22),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 10, sigmaY: 10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 7),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.gold.withOpacity(0.22),
+                                        border: Border.all(
+                                            color: AppColors.gold
+                                                .withOpacity(0.42)),
+                                        borderRadius:
+                                            BorderRadius.circular(22),
+                                      ),
+                                      child: Text(
+                                        (translations['mission_progress'] ??
+                                                'MISSION {index} / {total}')
+                                            .replaceAll('{index}', '$index')
+                                            .replaceAll(
+                                                '{total}', '$totalPlaces'),
+                                        style: const TextStyle(
+                                          fontFamily: 'Cormorant Garamond',
+                                          fontSize: 10,
+                                          letterSpacing: 2,
+                                          color: AppColors.amber,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         ),
@@ -302,22 +329,6 @@ class PlaceDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          (translations['spot_progress'] ??
-                                  'SPOT · {index} OF {total}')
-                              .replaceAll('{index}',
-                                  index.toString().padLeft(2, '0'))
-                              .replaceAll('{total}',
-                                  totalPlaces.toString().padLeft(2, '0')),
-                          style: TextStyle(
-                            fontFamily: 'Cormorant Garamond',
-                            fontSize: 11,
-                            letterSpacing: 4,
-                            color: AppColors.amber.withOpacity(0.8),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
                         Text(
                           translations['place_${place.id}_name'] ?? place.name,
                           style: const TextStyle(
@@ -534,9 +545,12 @@ class PlaceDetailScreen extends ConsumerWidget {
                           highlightColor: AppColors.amber.withOpacity(0.08),
                           onTap: () async {
                         if (isDone) {
-                          final imgs = place.galleryImages.isNotEmpty
+                          final gallery = place.galleryImages.isNotEmpty
                               ? place.galleryImages
                               : [place.imageUrl];
+                          final imgs = place.capturedPhotoPath != null
+                              ? [place.capturedPhotoPath!, ...gallery]
+                              : gallery;
                           FullScreenImageViewer.show(context, imgs);
                           return;
                         }
@@ -579,7 +593,7 @@ class PlaceDetailScreen extends ConsumerWidget {
                         }
 
                         final dist = distanceToStation(userPos, place.id);
-                        if (dist != null && dist > 50) {
+                        if (dist != null && dist > maxDistanceForStation(place.id)) {
                             // อยู่ไกลเกิน 50 เมตร — แสดง dialog เตือน (ตรงกับ camera_screen)
                             if (!context.mounted) return;
                             final goAnyway = await showDialog<bool>(

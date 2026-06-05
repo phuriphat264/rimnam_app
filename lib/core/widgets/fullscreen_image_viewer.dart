@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -98,29 +99,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                   minScale: 0.9,
                   maxScale: 4.0,
                   child: Center(
-                    child: Image.asset(
-                      widget.images[i],
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.sienna,
-                            size: 72,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'ไม่พบรูปภาพ',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
-                              fontFamily: 'Noto Serif Thai',
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: _buildImage(widget.images[i]),
                   ),
                 ),
               ),
@@ -198,6 +177,30 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         ),
       ),
     );
+  }
+
+  Widget _buildImage(String path) {
+    final errorWidget = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.broken_image_outlined, color: AppColors.sienna, size: 72),
+        const SizedBox(height: 12),
+        Text('ไม่พบรูปภาพ',
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontFamily: 'Noto Serif Thai',
+                fontSize: 13)),
+      ],
+    );
+    if (path.startsWith('/') || path.startsWith('file://')) {
+      return Image.file(
+        File(path.replaceFirst('file://', '')),
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => errorWidget,
+      );
+    }
+    return Image.asset(path, fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => errorWidget);
   }
 
   Widget _pill(String text) => Container(

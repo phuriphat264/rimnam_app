@@ -194,25 +194,28 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           lng: currentPos?.longitude,
         );
 
-    if (uploadFailed && mounted) {
-      final t = ref.read(translationsProvider);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          t['camera_upload_failed'] ?? 'บันทึกภารกิจสำเร็จ แต่รูปไม่ได้อัพโหลด (ตรวจสอบสัญญาณ)',
-          style: const TextStyle(fontFamily: 'Noto Serif Thai', color: Colors.white),
-        ),
-        backgroundColor: AppColors.mahogany,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 4),
-      ));
-    }
-
     final places = ref.read(placesProvider);
     final isAllDone = places.every((p) => p.status == PlaceStatus.done);
 
     if (!mounted) return;
     setState(() => _isProcessing = false);
+
+    // ล้าง snackbar เก่าก่อน navigate เสมอ
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    if (uploadFailed) {
+      final t = ref.read(translationsProvider);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          t['camera_upload_failed'] ?? 'บันทึกภารกิจสำเร็จ แต่รูปไม่ได้ซิงค์ (ตรวจสอบสัญญาณ)',
+          style: const TextStyle(fontFamily: 'Noto Serif Thai', color: Colors.white),
+        ),
+        backgroundColor: AppColors.mahogany,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ));
+    }
 
     if (isAllDone) {
       Navigator.pushAndRemoveUntil(
@@ -239,6 +242,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     final currentIndex = places.indexOf(place);
     final dist = distanceToStation(userPos, widget.placeId);
     final bool gpsLoading = locationAsync.isLoading;
+    final double maxDist = maxDistanceForStation(widget.placeId);
 
     return Scaffold(
       backgroundColor: const Color(0xFF050302),
@@ -414,7 +418,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       right: 0,
                       bottom: 24,
                       child: Center(
-                        child: _GpsBadge(gpsLoading: gpsLoading, distance: dist),
+                        child: _GpsBadge(gpsLoading: gpsLoading, distance: dist, maxDistance: maxDist),
                       ),
                     ),
 
@@ -531,6 +535,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               placeName:
                   translations['place_${place.id}_name'] ?? place.name,
               dist: dist,
+              maxDist: maxDist,
               gpsLoading: gpsLoading,
               isProcessing: _isProcessing,
               translations: translations,
@@ -550,6 +555,7 @@ class _PhotoPreviewOverlay extends StatelessWidget {
   final XFile file;
   final String placeName;
   final double? dist;
+  final double maxDist;
   final bool gpsLoading;
   final bool isProcessing;
   final Map<String, String> translations;
@@ -560,6 +566,7 @@ class _PhotoPreviewOverlay extends StatelessWidget {
     required this.file,
     required this.placeName,
     required this.dist,
+    required this.maxDist,
     required this.gpsLoading,
     required this.isProcessing,
     required this.translations,
@@ -656,7 +663,7 @@ class _PhotoPreviewOverlay extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _GpsBadge(gpsLoading: gpsLoading, distance: dist),
+                      _GpsBadge(gpsLoading: gpsLoading, distance: dist, maxDistance: maxDist),
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -762,8 +769,13 @@ class _ConfirmButton extends StatelessWidget {
 class _GpsBadge extends StatelessWidget {
   final bool gpsLoading;
   final double? distance;
+  final double maxDistance;
 
-  const _GpsBadge({required this.gpsLoading, required this.distance});
+  const _GpsBadge({
+    required this.gpsLoading,
+    required this.distance,
+    required this.maxDistance,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -776,7 +788,7 @@ class _GpsBadge extends StatelessWidget {
       icon = Icons.gps_not_fixed;
       label = 'กำลังหาตำแหน่ง...';
     } else if (distance != null) {
-      color = distance! <= 50 ? AppColors.sage : AppColors.teal;
+      color = distance! <= maxDistance ? AppColors.sage : AppColors.teal;
       icon = Icons.gps_fixed;
       label = 'ห่าง ${formatDistance(distance!)}';
     } else {

@@ -110,7 +110,7 @@ class HelpScreen extends ConsumerWidget {
           // ── App version ───────────────────────────────────────
           Center(
             child: Text(
-              'Rimnam Chanthabun v1.0.0',
+              'CHAN RIVER GUIDE v1.0.0',
               style: TextStyle(
                 fontFamily: 'Cormorant Garamond',
                 fontSize: 12,

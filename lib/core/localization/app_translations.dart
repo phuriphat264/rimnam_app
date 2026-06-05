@@ -3,7 +3,7 @@
 
   static const Map<String, Map<String, String>> strings = {
     'th': {
-      'app_name': 'ริมน้ำจันทบูร',
+      'app_name': 'CHAN RIVER GUIDE',
       'app_subtitle': 'Chanthabun Riverside',
       'continue_btn': 'ดำเนินการต่อ',
       'login_title': 'เข้าสู่ระบบ',
@@ -61,7 +61,7 @@
       'spot_progress': 'SPOT · {index} OF {total}',
       'history': 'ประวัติศาสตร์',
       'mission_hint': 'คำใบ้ภารกิจ',
-      'mission_completed': 'คุณทำภารกิจจุดนี้สำเร็จแล้ว ยอดเยี่ยมมาก! 🎉',
+      'mission_completed': '🎉 คุณทำภารกิจจุดนี้สำเร็จแล้ว ยอดเยี่ยม!',
       'place_progress': 'สถานที่ {index} / {total}',
       'place_completed': 'คุณทำภารกิจสถานที่นี้เสร็จแล้ว 🎉',
       'mission_done': 'ภารกิจเสร็จสิ้น',
@@ -90,8 +90,8 @@
       'completion_title': 'ภารกิจสำเร็จ!',
       'completion_desc': 'สำรวจครบทั้ง 6 สถานที่แล้ว\nชุมชนริมน้ำจันทบูร',
       'completion_reward_at': 'รับของรางวัลที่',
-      'completion_reward_place': 'ศูนย์การเรียนรู้\nชุมชนริมน้ำจันทบูร',
-      'completion_reward_note': 'จันทบุรี - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
+      'completion_reward_place': 'บ้านเลขที่ 69 ขุนอนุสรสมบัติ\nบ้านเรียนรู้ชุมชน ริมน้ำจันทบูร',
+      'completion_reward_note': 'Community Learning House - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
       'completion_route': 'ดูเส้นทาง',
 
       'profile_name': 'นักสำรวจนิรนาม',
@@ -246,7 +246,7 @@
 
     },
     'zh': {
-      'app_name': '尖竹汶河畔',
+      'app_name': 'CHAN RIVER GUIDE',
       'app_subtitle': 'Chanthabun Riverside',
       'continue_btn': '继续',
       'login_title': '登录',
@@ -304,7 +304,7 @@
       'spot_progress': '地点 · {index} / {total}',
       'history': '历史',
       'mission_hint': '任务提示',
-      'mission_completed': '您已成功完成此地点！🎉',
+      'mission_completed': '🎉 您已成功完成此地点！',
       'place_progress': '地点 {index} / {total}',
       'place_completed': '您已完成此地点的任务 🎉',
       'mission_done': '任务完成',
@@ -333,8 +333,8 @@
       'completion_title': '任务完成！',
       'completion_desc': '成功探索尖竹汶河畔社区的\n所有6个地点',
       'completion_reward_at': '在以下地点领取奖励',
-      'completion_reward_place': '尖竹汶河畔\n学习中心',
-      'completion_reward_note': '尖竹汶 - 向工作人员出示此屏幕',
+      'completion_reward_place': '69号 坤阿努松宋巴\n河畔社区学习之家',
+      'completion_reward_note': 'Community Learning House - 向工作人员出示此屏幕',
       'completion_route': '查看路线',
 
       'profile_name': '匿名探索者',
@@ -489,7 +489,7 @@
 
     },
     'en': {
-      'app_name': 'Chanthabun',
+      'app_name': 'CHAN RIVER GUIDE',
       'app_subtitle': 'Riverside Experience',
       'continue_btn': 'Continue',
       'login_title': 'Login',
@@ -547,7 +547,7 @@
       'spot_progress': 'SPOT · {index} OF {total}',
       'history': 'History',
       'mission_hint': 'Mission Hint',
-      'mission_completed': 'You have successfully completed this spot! 🎉',
+      'mission_completed': '🎉 You have successfully completed this spot!',
       'place_progress': 'Place {index} / {total}',
       'place_completed': 'You have completed the mission for this place 🎉',
       'mission_done': 'Mission Done',
@@ -576,8 +576,8 @@
       'completion_title': 'Mission Accomplished!',
       'completion_desc': 'Successfully explored all 6 spots in\nChanthabun Riverside Community',
       'completion_reward_at': 'Claim your reward at',
-      'completion_reward_place': 'Chanthabun Riverside\nLearning Center',
-      'completion_reward_note': 'Chanthaburi - Show this screen to the staff',
+      'completion_reward_place': 'No. 69 Khun Anusorn Sombat\nCommunity Learning House',
+      'completion_reward_note': 'Chanthabun Riverside - Show this screen to staff',
       'completion_route': 'Get Directions',
 
       'profile_name': 'Anonymous Explorer',

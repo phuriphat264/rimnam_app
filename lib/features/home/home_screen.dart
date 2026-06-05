@@ -180,7 +180,7 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'MISSION · RIMNAM',
+                          'MISSION · CHAN RIVER',
                           style: TextStyle(
                             fontFamily: 'Cormorant Garamond',
                             fontSize: 10,

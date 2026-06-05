@@ -48,6 +48,56 @@ class PlacesNotifier extends StateNotifier<List<Place>> {
     } catch (_) {}
   }
 
+  /// ล้างข้อมูล local ทิ้งก่อน แล้ว sync จาก server ใหม่ทั้งหมด
+  /// ใช้หลัง login เพื่อป้องกันข้อมูลค้างจาก user คนก่อน
+  Future<void> resetAndSyncFromServer() async {
+    // ลบ local cache ทั้งหมด
+    for (final p in state) {
+      _prefs.remove('$_photoKeyPrefix${p.id}');
+    }
+    _prefs.remove(_completedKey);
+
+    // reset state เป็น fresh (สถานที่ 1 active, ที่เหลือ locked)
+    state = mockPlaces.asMap().entries.map((e) {
+      return e.value.copyWith(
+        status: e.key == 0 ? PlaceStatus.active : PlaceStatus.locked,
+      );
+    }).toList();
+
+    // ดึงข้อมูลจาก server แล้ว apply โดยไม่ merge กับ local
+    try {
+      final data = await _api.get('/missions/progress');
+      final ids = List<String>.from(data['completed_place_ids'] ?? []);
+      if (ids.isNotEmpty) _applyServerIds(ids);
+    } catch (_) {}
+  }
+
+  void _applyServerIds(List<String> serverIds) {
+    final newList = mockPlaces.map((p) {
+      final isDone = serverIds.contains(p.id);
+      final photoPath = _prefs.getString('$_photoKeyPrefix${p.id}');
+      return p.copyWith(
+        status: isDone ? PlaceStatus.done : p.status,
+        capturedPhotoPath: photoPath,
+      );
+    }).toList();
+
+    // unlock sequential: หา index สุดท้ายที่ done แล้ว unlock ถัดไป
+    final lastDoneIdx = newList.lastIndexWhere(
+        (p) => p.status == PlaceStatus.done);
+    final nextIdx = lastDoneIdx + 1;
+    if (nextIdx < newList.length &&
+        newList[nextIdx].status == PlaceStatus.locked) {
+      newList[nextIdx] = newList[nextIdx].copyWith(status: PlaceStatus.active);
+    } else if (lastDoneIdx == -1) {
+      // ยังไม่ done เลย — unlock สถานที่แรก
+      newList[0] = newList[0].copyWith(status: PlaceStatus.active);
+    }
+
+    state = newList;
+    _prefs.setStringList(_completedKey, serverIds);
+  }
+
   void _applyCompletedIds(List<String> serverIds) {
     // Merge server + local — ไม่ลบ progress ที่บันทึกไว้แล้ว
     // กรณี server ส่ง [] มา (JWT หมดอายุ / backend ไม่มีข้อมูล) จะไม่ reset local

@@ -33,6 +33,8 @@ dependencies:
   google_sign_in: ^6.2.2
   path_provider: ^2.1.1
   flutter_svg: ^2.0.10
+  share_plus: ^10.1.3               # Native share sheet (Instagram, etc.)
+  gal: ^2.3.0                       # บันทึกรูปลง gallery
 
   # --- UI & Design ---
   google_fonts: ^6.1.0            # สำหรับโหลด Noto Serif Thai และ Playfair Display อัตโนมัติ

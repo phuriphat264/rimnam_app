@@ -197,12 +197,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(index: 0, icon: Icons.home_rounded, label: 'หน้าแรก'),
-                  _NavItem(index: 1, icon: Icons.map_rounded, label: 'แผนที่'),
-                  _NavItem(index: 2, icon: Icons.person_rounded, label: 'โปรไฟล์'),
+                children: const [
+                  _NavItem(index: 0, icon: Icons.home_rounded, labelKey: 'nav_home'),
+                  _NavItem(index: 1, icon: Icons.map_rounded, labelKey: 'nav_map'),
+                  _NavItem(index: 2, icon: Icons.person_rounded, labelKey: 'nav_profile'),
                 ],
               ),
             ),
@@ -368,18 +368,20 @@ class _GpsPermissionDialog extends StatelessWidget {
 class _NavItem extends ConsumerWidget {
   final int index;
   final IconData icon;
-  final String label;
+  final String labelKey;
 
   const _NavItem({
     required this.index,
     required this.icon,
-    required this.label,
+    required this.labelKey,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
     final isSelected = currentIndex == index;
+    final translations = ref.watch(translationsProvider);
+    final label = translations[labelKey] ?? labelKey;
 
     return GestureDetector(
       onTap: () => ref.read(bottomNavIndexProvider.notifier).state = index,

@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
-import '../../core/widgets/city_illustration.dart';
 import 'auth_provider.dart';
+import '../main/main_screen.dart';
 import '../history/history_screen.dart';
 import '../places/places_provider.dart';
+import '../places/place_model.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -73,13 +74,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (!mounted) return;
     final newState = ref.read(authProvider);
     if (newState.isAuthenticated) {
-      await ref.read(placesProvider.notifier).syncFromServer();
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryScreen()),
-        );
-      }
+      await ref.read(placesProvider.notifier).resetAndSyncFromServer();
+      if (mounted) _navigateAfterLogin();
     }
   }
 
@@ -88,13 +84,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (!mounted) return;
     final newState = ref.read(authProvider);
     if (newState.isAuthenticated) {
-      await ref.read(placesProvider.notifier).syncFromServer();
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryScreen()),
-        );
-      }
+      await ref.read(placesProvider.notifier).resetAndSyncFromServer();
+      if (mounted) _navigateAfterLogin();
+    }
+  }
+
+  void _navigateAfterLogin() {
+    final places = ref.read(placesProvider);
+    final isAllDone = places.every((p) => p.status == PlaceStatus.done);
+
+    // ล้าง stack เก่าทั้งหมด → MainScreen เป็น root
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScreen()),
+      (route) => false,
+    );
+
+    // ถ้าทำครบทุกภารกิจ → เปิดสมุดประทับไว้บน MainScreen
+    if (isAllDone) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const HistoryScreen()),
+      );
     }
   }
 
@@ -148,47 +159,67 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       backgroundColor: AppColors.ink,
       body: Column(
         children: [
-          // ── Header ────────────────────────────────────────────
-          Container(
-            color: AppColors.espresso,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: isSmallScreen ? 100.0 : 130.0,
-                      child: const CityIllustration(),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      isLogin
-                          ? translations['login_title'] ?? 'เข้าสู่ระบบ'
-                          : translations['register_title'] ?? 'สมัครสมาชิก',
-                      style: const TextStyle(
-                        fontFamily: 'Noto Serif Thai',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.cream,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isLogin
-                          ? translations['login_subtitle'] ?? 'ยินดีต้อนรับกลับ'
-                          : translations['register_subtitle'] ?? 'สร้างบัญชีเพื่อเริ่มการเดินทาง',
-                      style: TextStyle(
-                        fontFamily: 'Noto Serif Thai',
-                        fontSize: 12,
-                        color: AppColors.amber.withOpacity(0.8),
-                      ),
-                    ),
-                  ],
+          // ── Header (photo hero) ───────────────────────────────
+          SizedBox(
+            height: isSmallScreen ? 165.0 : 210.0,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  'assets/images/7.jpg',
+                  fit: BoxFit.cover,
                 ),
-              ),
+                // gradient: ทึบบนสุด (status bar) → โปร่งกลาง → ทึบล่าง (text)
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xCC1C1208),
+                        Colors.transparent,
+                        Color(0xF21C1208),
+                      ],
+                      stops: [0.0, 0.38, 1.0],
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          isLogin
+                              ? translations['login_title'] ?? 'เข้าสู่ระบบ'
+                              : translations['register_title'] ?? 'สมัครสมาชิก',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Serif Thai',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.cream,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          isLogin
+                              ? translations['login_subtitle'] ?? 'ยินดีต้อนรับกลับ'
+                              : translations['register_subtitle'] ?? 'สร้างบัญชีเพื่อเริ่มการเดินทาง',
+                          style: TextStyle(
+                            fontFamily: 'Noto Serif Thai',
+                            fontSize: 12,
+                            color: AppColors.amber.withOpacity(0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 

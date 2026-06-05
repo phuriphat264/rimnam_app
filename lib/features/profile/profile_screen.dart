@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/localization/l10n_provider.dart';
 import '../../core/services/api_service.dart';
@@ -16,6 +18,8 @@ import '../history/history_screen.dart';
 import '../../core/widgets/place_icon.dart';
 
 final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  // watch authProvider เพื่อ refresh อัตโนมัติเมื่อ login/logout
+  ref.watch(authProvider);
   try {
     return await ApiService().get('/users/me');
   } catch (_) {
@@ -317,7 +321,7 @@ class ProfileScreen extends ConsumerWidget {
                       childAspectRatio: 1.0,
                     ),
                     itemCount: places.length,
-                    itemBuilder: (_, i) {
+                    itemBuilder: (ctx, i) {
                       final place = places[i];
                       final isDone = place.status == PlaceStatus.done;
                       final hasPhoto = place.capturedPhotoPath != null;
@@ -326,6 +330,18 @@ class ProfileScreen extends ConsumerWidget {
                         isDone: isDone,
                         hasPhoto: hasPhoto,
                         index: i,
+                        onTap: (isDone && hasPhoto)
+                            ? () => Navigator.of(ctx).push(PageRouteBuilder(
+                                  opaque: false,
+                                  pageBuilder: (_, __, ___) =>
+                                      _JourneyPhotoViewer(place: place),
+                                  transitionsBuilder: (_, anim, __, child) =>
+                                      FadeTransition(
+                                          opacity: anim, child: child),
+                                  transitionDuration:
+                                      const Duration(milliseconds: 220),
+                                ))
+                            : null,
                       );
                     },
                   ),
@@ -624,17 +640,21 @@ class _JourneyPhotoCell extends StatelessWidget {
   final bool isDone;
   final bool hasPhoto;
   final int index;
+  final VoidCallback? onTap;
 
   const _JourneyPhotoCell({
     required this.place,
     required this.isDone,
     required this.hasPhoto,
     required this.index,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Stack(
         fit: StackFit.expand,
@@ -709,7 +729,8 @@ class _JourneyPhotoCell extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),  // ClipRRect
+    );  // GestureDetector
   }
 
   Widget _iconPlaceholder(bool isDone) {
@@ -723,6 +744,227 @@ class _JourneyPhotoCell extends StatelessWidget {
               ? AppColors.amber.withOpacity(0.7)
               : AppColors.mahogany.withOpacity(0.4),
         ),
+      ),
+    );
+  }
+}
+
+// ── Journey Photo Fullscreen Viewer ───────────────────────────
+class _JourneyPhotoViewer extends StatefulWidget {
+  final Place place;
+  const _JourneyPhotoViewer({required this.place});
+
+  @override
+  State<_JourneyPhotoViewer> createState() => _JourneyPhotoViewerState();
+}
+
+class _JourneyPhotoViewerState extends State<_JourneyPhotoViewer> {
+  bool _isSaving = false;
+
+  Future<void> _save() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess();
+        if (!granted) {
+          _snack('ไม่ได้รับสิทธิ์เข้าถึง Gallery');
+          return;
+        }
+      }
+      final bytes = await File(widget.place.capturedPhotoPath!).readAsBytes();
+      await Gal.putImageBytes(bytes,
+          name: 'chan_river_${DateTime.now().millisecondsSinceEpoch}');
+      _snack('บันทึกรูปสำเร็จ', isSuccess: true);
+    } catch (_) {
+      _snack('บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _share() async {
+    await Share.shareXFiles(
+      [XFile(widget.place.capturedPhotoPath!, mimeType: 'image/jpeg')],
+      text: widget.place.name,
+    );
+  }
+
+  void _snack(String msg, {bool isSuccess = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          style: const TextStyle(
+              fontFamily: 'Noto Serif Thai', color: Colors.white)),
+      backgroundColor: isSuccess ? AppColors.gold : AppColors.mahogany,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // รูปเต็มจอ
+          InteractiveViewer(
+            minScale: 0.9,
+            maxScale: 4.0,
+            child: Center(
+              child: Image.file(
+                File(widget.place.capturedPhotoPath!),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white24,
+                    size: 64),
+              ),
+            ),
+          ),
+
+          // ปุ่มปิด
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.25)),
+                    ),
+                    child: const Icon(Icons.close,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ชื่อสถานที่บนสุด
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 56, 0),
+                child: Text(
+                  widget.place.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Noto Serif Thai',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ปุ่ม save + share ด้านล่าง
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.75),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                  24, 32, 24, MediaQuery.of(context).padding.bottom + 24),
+              child: Row(
+                children: [
+                  // Save
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _isSaving ? null : _save,
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_isSaving)
+                              const SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            else
+                              const Icon(Icons.save_alt_rounded,
+                                  color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isSaving ? 'กำลังบันทึก...' : 'บันทึก',
+                              style: const TextStyle(
+                                fontFamily: 'Noto Serif Thai',
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Share
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _share,
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.share_rounded,
+                                color: AppColors.ink, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'แชร์',
+                              style: TextStyle(
+                                fontFamily: 'Noto Serif Thai',
+                                fontSize: 14,
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

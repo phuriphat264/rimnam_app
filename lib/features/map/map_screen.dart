@@ -340,17 +340,42 @@ class _MapScreenState extends ConsumerState<MapScreen>
             translations: translations,
           );
 
-    // auto-center + advance step ขณะนำทาง
+    // auto-center + advance step + trim route ขณะนำทาง
     ref.listen<AsyncValue<Position?>>(userLocationProvider, (_, next) {
       final pos = next.valueOrNull;
       if (pos == null || !ref.read(isNavigatingProvider)) return;
-      _mapController.move(LatLng(pos.latitude, pos.longitude), _mapController.camera.zoom);
+
+      final userLatLng = LatLng(pos.latitude, pos.longitude);
+      _mapController.move(userLatLng, _mapController.camera.zoom);
+
+      // ── Trim route: ตัดเส้นที่ผ่านแล้วออก ──
+      final points = ref.read(routePointsProvider);
+      if (points.length > 2) {
+        int closestIdx = 0;
+        double minDist = double.infinity;
+        for (int i = 0; i < points.length; i++) {
+          final d = Geolocator.distanceBetween(
+            pos.latitude, pos.longitude,
+            points[i].latitude, points[i].longitude,
+          );
+          if (d < minDist) { minDist = d; closestIdx = i; }
+        }
+        if (closestIdx > 0 && minDist < 80) {
+          ref.read(routePointsProvider.notifier).state = [
+            userLatLng,
+            ...points.sublist(closestIdx),
+          ];
+        }
+      }
+
+      // ── Advance step ──
       final steps = ref.read(routeStepsProvider);
       final idx = ref.read(activeStepIndexProvider);
       if (idx >= steps.length - 1) return;
       final dist = Geolocator.distanceBetween(
         pos.latitude, pos.longitude,
-        steps[idx + 1].maneuverPoint.latitude, steps[idx + 1].maneuverPoint.longitude,
+        steps[idx + 1].maneuverPoint.latitude,
+        steps[idx + 1].maneuverPoint.longitude,
       );
       if (dist < 30) ref.read(activeStepIndexProvider.notifier).state = idx + 1;
     });
@@ -367,13 +392,23 @@ class _MapScreenState extends ConsumerState<MapScreen>
               place: place,
               isSelected: place.id == selectedId,
               onTap: () {
-                if (isNavigating) return;
                 final newId = place.id == selectedId ? null : place.id;
                 ref.read(selectedMapPlaceIdProvider.notifier).state = newId;
                 if (newId != null) {
                   ref.read(routePointsProvider.notifier).state = const [];
                   ref.read(routeStepsProvider.notifier).state = const [];
                   _mapController.move(stationCoordinates[newId]!, 16.5);
+                  // ระหว่างนำทาง → เปลี่ยนปลายทางทันที
+                  if (isNavigating && userPosition != null) {
+                    ref.read(activeStepIndexProvider.notifier).state = 0;
+                    final userLatLng = LatLng(
+                        userPosition.latitude, userPosition.longitude);
+                    unawaited(_loadRoute(userLatLng, newId));
+                    _showSnackBar(
+                        '${translations['map_rerouting'] ?? 'เปลี่ยนปลายทาง →'} ${place.name}');
+                  }
+                } else if (isNavigating) {
+                  _stopNavigation();
                 }
               },
             ),
@@ -1097,10 +1132,27 @@ class _MapBottomCard extends ConsumerWidget {
                                     : AppColors.gold,
                         onTap: isDone
                             ? () {
-                                final imgs = place.galleryImages.isNotEmpty
-                                    ? place.galleryImages
-                                    : [place.imageUrl];
-                                FullScreenImageViewer.show(context, imgs);
+                                if (place.capturedPhotoPath != null) {
+                                  FullScreenImageViewer.show(
+                                      context, [place.capturedPhotoPath!]);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        translations['map_no_user_photo'] ??
+                                            'กรุณาทำภารกิจถ่ายรูปที่สถานที่นี้ก่อนนะครับ',
+                                        style: const TextStyle(
+                                            fontFamily: 'Noto Serif Thai',
+                                            color: Colors.white),
+                                      ),
+                                      backgroundColor: AppColors.mahogany,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
                               }
                             : canShoot
                                 ? () => Navigator.push(

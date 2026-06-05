@@ -36,7 +36,7 @@ class RimnamApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ริมน้ำจันทบูร (Rimnam Chanthabun)',
+      title: 'CHAN RIVER GUIDE',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.ink,

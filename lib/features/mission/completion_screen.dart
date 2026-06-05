@@ -253,7 +253,7 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> with Single
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      translations['completion_reward_place'] ?? 'ศูนย์การเรียนรู้\nชุมชนริมน้ำจันทบูร',
+                                      translations['completion_reward_place'] ?? 'บ้านเลขที่ 69 ขุนอนุสรสมบัติ\nบ้านเรียนรู้ชุมชน ริมน้ำจันทบูร',
                                       style: const TextStyle(
                                         fontFamily: 'Noto Serif Thai',
                                         fontSize: 18,
@@ -269,7 +269,7 @@ class _CompletionScreenState extends ConsumerState<CompletionScreen> with Single
                                         const SizedBox(width: 4),
                                         Expanded(
                                           child: Text(
-                                            translations['completion_reward_note'] ?? 'จันทบุรี - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
+                                            translations['completion_reward_note'] ?? 'Community Learning House - แสดงหน้าจอนี้แก่เจ้าหน้าที่',
                                             style: TextStyle(
                                               fontFamily: 'Noto Serif Thai',
                                               fontSize: 11,
